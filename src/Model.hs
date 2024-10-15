@@ -15,13 +15,13 @@ data Player = Player
 data Enemy = Enemy
     { enemyX :: Float -- vast
     , enemyY :: Float -- beweegbaar  
-    , speed :: Int -- voor nu een vaste waarde
+    , speed :: Float -- voor nu een vaste waarde
     , alive :: Bool
     } deriving (Show, Eq) 
 
 
 nO_SECS_BETWEEN_CYCLES :: Float
-nO_SECS_BETWEEN_CYCLES = 5
+nO_SECS_BETWEEN_CYCLES = 3
 
 data GameState = GameState {
                   infoToShow  :: InfoToShow
@@ -35,6 +35,6 @@ initialState :: GameState
 initialState = GameState {
                       infoToShow = DrawAll
                     , player = Player 0 0
-                    , enemies = []
+                    , enemies = [Enemy 180 0 10 True]
                     , elapsedTime = 0
                   }

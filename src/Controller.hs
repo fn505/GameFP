@@ -8,16 +8,7 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
 
--- | Handle one iteration of the game
-step :: Float -> GameState -> IO GameState
-step secs gstate
-  | elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
-  = -- We show a new random number
-    do newEnemy <- spawnEnemy
-       return $ gstate{enemies = newEnemy : enemies gstate , elapsedTime = 0 }
-  | otherwise
-  = -- Just update the elapsed time
-    return $ gstate { elapsedTime = elapsedTime gstate + secs }
+
 
 -- step :: Float -> GameState -> IO GameState
 -- step secs gstate
@@ -30,13 +21,26 @@ step secs gstate
 --   = -- Just update the elapsed time
 --     return $ gstate { elapsedTime = elapsedTime gstate + secs }
 
--- step :: Float -> GameState -> IO GameState
--- step _ gstate = return gstate -- No changes to the game state
+
 
 spawnEnemy :: IO Enemy
 spawnEnemy  = do
   enemyYpos <- randomRIO (-150, 150)
-  return $ Enemy 180 enemyYpos 2 True
+  return $ Enemy 180 enemyYpos 10 True
+-- | Handle one iteration of the game
+step :: Float -> GameState -> IO GameState
+step secs gstate = do
+  let updatedEnemies = moveEnemies(enemies gstate)
+
+  if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
+    then do 
+       newEnemy <- spawnEnemy
+       return $ gstate{enemies = newEnemy : updatedEnemies , elapsedTime = 0 }
+       else do 
+        return $ gstate { enemies = updatedEnemies, elapsedTime = elapsedTime gstate + secs }
+
+
+
 
 -- | Handle user input
 input :: Event -> GameState -> IO GameState
@@ -53,3 +57,8 @@ movePlayer :: Float -> Player -> Player
 movePlayer delta player = player {playerY = playerY player + delta}
 
 
+moveEnemies :: [Enemy] -> [Enemy]
+moveEnemies = map moveEnemy
+
+moveEnemy :: Enemy -> Enemy
+moveEnemy enemy = enemy {enemyX = enemyX enemy - speed enemy}

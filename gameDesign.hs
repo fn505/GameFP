@@ -39,6 +39,7 @@ movePlayer delta player = player {playerY = playerY player + delta}
 enemy1 :: Enemy
 enemy1 = Enemy {enemyX = 100, enemyY = 2, speed = 2, alive = True}
 
+
 moveEnemy :: Enemy -> Enemy
 moveEnemy enemy = enemy {enemyX = enemyX enemy - speed enemy}
 
