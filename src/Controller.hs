@@ -26,18 +26,25 @@ import System.Random
 spawnEnemy :: IO Enemy
 spawnEnemy  = do
   enemyYpos <- randomRIO (-150, 150)
-  return $ Enemy 180 enemyYpos 10 True
+  return $ Enemy 180 enemyYpos 10 10 True
+  
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
 step secs gstate = do
   let updatedEnemies = moveEnemies(enemies gstate)
+  let collision = any(checkCollision(player gstate)) updatedEnemies
 
-  if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
+  if(collision)
     then do 
-       newEnemy <- spawnEnemy
-       return $ gstate{enemies = newEnemy : updatedEnemies , elapsedTime = 0 }
-       else do 
-        return $ gstate { enemies = updatedEnemies, elapsedTime = elapsedTime gstate + secs }
+      putStrLn "Collision"
+      return gstate
+      else
+        if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
+          then do 
+            newEnemy <- spawnEnemy
+            return $ gstate{enemies = newEnemy : updatedEnemies , elapsedTime = 0 }
+            else do 
+              return $ gstate { enemies = updatedEnemies, elapsedTime = elapsedTime gstate + secs }
 
 
 
@@ -62,3 +69,9 @@ moveEnemies = map moveEnemy
 
 moveEnemy :: Enemy -> Enemy
 moveEnemy enemy = enemy {enemyX = enemyX enemy - speed enemy}
+
+
+checkCollision :: Player -> Enemy -> Bool
+checkCollision (Player px py pr _) (Enemy ex ey _ er _) =
+    (ex + er > px - pr) && (ex - er < px + pr) &&
+    (ey + er > py - pr) && (ey - er < py + pr)

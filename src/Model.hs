@@ -10,18 +10,22 @@ data InfoToShow = ShowNothing
 data Player = Player
     { playerX :: Float -- vast
     , playerY :: Float -- beweegbaar  
+    , playerRadius :: Float
+    , dead :: Bool
     } deriving (Show, Eq) 
 
 data Enemy = Enemy
     { enemyX :: Float -- vast
     , enemyY :: Float -- beweegbaar  
     , speed :: Float -- voor nu een vaste waarde
-    , alive :: Bool
+    , enemyRadius :: Float
+    , active :: Bool
+    
     } deriving (Show, Eq) 
 
 
 nO_SECS_BETWEEN_CYCLES :: Float
-nO_SECS_BETWEEN_CYCLES = 3
+nO_SECS_BETWEEN_CYCLES = 1.5
 
 data GameState = GameState {
                   infoToShow  :: InfoToShow
@@ -34,7 +38,7 @@ data GameState = GameState {
 initialState :: GameState
 initialState = GameState {
                       infoToShow = DrawAll
-                    , player = Player 0 0
-                    , enemies = [Enemy 180 0 10 True]
+                    , player = Player 0 0 10 False
+                    , enemies = []
                     , elapsedTime = 0
                   }

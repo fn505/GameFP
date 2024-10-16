@@ -23,10 +23,11 @@ drawAll :: (Player , [Enemy]) -> Picture
 drawAll (player, enemies) = pictures[drawPlayer player, drawEnemies enemies]
 
 drawPlayer :: Player -> Picture
-drawPlayer (Player x y) = pictures[translate x y $ color green $ circle 10] 
+drawPlayer (Player x y r d) = pictures[translate x y $ color green $ circle r] 
 
 drawEnemies :: [Enemy] -> Picture
 drawEnemies = pictures . map drawEnemy
 
 drawEnemy :: Enemy -> Picture
-drawEnemy (Enemy x y s True) = pictures[translate x y $ color red $ circle 10] 
+drawEnemy (Enemy x y s r a ) = pictures[translate x y $ color red $ circle r] 
+
