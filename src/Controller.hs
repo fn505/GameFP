@@ -31,22 +31,23 @@ spawnEnemy  = do
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
 step secs gstate = do
-  let updatedEnemies = moveEnemies(enemies gstate)
-  let collision = any(checkCollision(player gstate)) updatedEnemies
+  -- Move the enemies
+  let updatedEnemies = moveEnemies (enemies gstate)
+  let movedBullet = moveBullet(bullet gstate)
+  let collision = case infoToShow gstate of
+                    DrawAll -> any (checkCollision (player gstate)) updatedEnemies
+                    _       -> False
 
-  if(collision)
-    then do 
+  if collision
+    then do
       putStrLn "Collision"
       return gstate
-      else
-        if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
-          then do 
-            newEnemy <- spawnEnemy
-            return $ gstate{enemies = newEnemy : updatedEnemies , elapsedTime = 0 }
-            else do 
-              return $ gstate { enemies = updatedEnemies, elapsedTime = elapsedTime gstate + secs }
-
-
+    else if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
+      then do
+        newEnemy <- spawnEnemy
+        return $ gstate { enemies = newEnemy : updatedEnemies, elapsedTime = 0, bullet = movedBullet }
+      else return $ gstate { enemies = updatedEnemies
+                           , elapsedTime = elapsedTime gstate + secs, bullet = movedBullet }
 
 
 -- | Handle user input
@@ -55,9 +56,9 @@ input e gstate = return (inputKey e gstate)
 
 inputKey :: Event -> GameState -> GameState
 inputKey (EventKey (Char 'w') Down _ _) gstate
-  = gstate { player = movePlayer 2 (player gstate)}
+  = gstate { player = movePlayer 10 (player gstate)}
 inputKey (EventKey (Char 's') Down _ _) gstate
-  = gstate { player = movePlayer (-2) (player gstate)}
+  = gstate { player = movePlayer (-10) (player gstate)}
 inputKey _ gstate = gstate -- Otherwise keep the same
 
 movePlayer :: Float -> Player -> Player
@@ -70,8 +71,11 @@ moveEnemies = map moveEnemy
 moveEnemy :: Enemy -> Enemy
 moveEnemy enemy = enemy {enemyX = enemyX enemy - speed enemy}
 
+moveBullet :: Bullet -> Bullet
+moveBullet bullet = bullet {bulletX = bulletX bullet - bulletSpeed bullet}
 
 checkCollision :: Player -> Enemy -> Bool
 checkCollision (Player px py pr _) (Enemy ex ey _ er _) =
     (ex + er > px - pr) && (ex - er < px + pr) &&
     (ey + er > py - pr) && (ey - er < py + pr)
+

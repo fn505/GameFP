@@ -14,6 +14,7 @@ viewPure gstate = case infoToShow gstate of
   DrawPlayer    -> drawPlayer (player gstate)
   DrawEnemies   -> drawEnemies (enemies gstate)
   DrawAll       -> drawAll (player gstate, enemies gstate)
+  DrawBullet    -> drawBullet(bullet gstate)
   -- ShowANumber n -> color green (text (show n))
   -- ShowAChar   c -> color green (text [c])
   -- ShowCircle -> let (x, y) = circlePos gstate
@@ -30,4 +31,10 @@ drawEnemies = pictures . map drawEnemy
 
 drawEnemy :: Enemy -> Picture
 drawEnemy (Enemy x y s r a ) = pictures[translate x y $ color red $ circle r] 
+
+drawBullet :: Bullet -> Picture
+drawBullet (Bullet x y _) = pictures[translate x y $ color blue $ rectangleSolid 20 5]
+
+
+
 
