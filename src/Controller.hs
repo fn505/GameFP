@@ -36,11 +36,9 @@ step :: Float -> GameState -> IO GameState
 step secs gstate = do
   -- Move the enemies
   let updatedEnemies = moveEnemies (enemies gstate)
+  --moving bullets
   let movedBullets = moveBullets(bullets gstate)
-  -- mapM_ (print . bulletX) movedBullets
-  -- let collision = case infoToShow gstate of
-  --                   DrawAll -> any (checkCollision (player gstate)) updatedEnemies
-  --                   _       -> False
+  --checks if bullets in the gamestate hit an enemy
   let shotEnemy = any (\bullet -> any (checkHitEnemy bullet) updatedEnemies) (bullets gstate)
 
   if shotEnemy
@@ -48,10 +46,10 @@ step secs gstate = do
       putStrLn "shot"
       return gstate
     else if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
-      then do
+      then do -- spawn an enemy every 1.5 secs + update gamestate
         newEnemy <- spawnEnemy
         return $ gstate { enemies = newEnemy : updatedEnemies, elapsedTime = 0, bullets = movedBullets}
-      else return $ gstate { enemies = updatedEnemies
+      else return $ gstate { enemies = updatedEnemies -- dont spawn enemy before those 1.5 secs 
                            , elapsedTime = elapsedTime gstate + secs, bullets = movedBullets }
 
 
@@ -60,6 +58,7 @@ input :: Event -> GameState -> IO GameState
 input e gstate = return (inputKey e gstate)
 
 inputKey :: Event -> GameState -> GameState
+-- when you press the spacebar, a new bullet gets created at the place of the player + add the bullet to the gamestate
 inputKey (EventKey (SpecialKey KeySpace) Down _ _) gstate
   = let newBullet = spawnPlayerBullet (player gstate)
     in gstate {bullets = newBullet : bullets gstate}
@@ -85,11 +84,13 @@ moveBullets = map moveBullet
 moveBullet :: Bullet -> Bullet
 moveBullet bullet = bullet {bulletX = bulletX bullet + bulletSpeed bullet}
 
+--check for collision between the player and the enemy
 checkCollision :: Player -> Enemy -> Bool
 checkCollision (Player px py pr _) (Enemy ex ey _ er _) =
     (ex + er > px - pr) && (ex - er < px + pr) &&
     (ey + er > py - pr) && (ey - er < py + pr)
 
+--check if a bullet hits an enemy
 checkHitEnemy :: Bullet -> Enemy -> Bool
 checkHitEnemy (Bullet bx by _ _) (Enemy ex ey _ er _) =
     (ex + er >= bx) && (ex - er <= bx) &&
