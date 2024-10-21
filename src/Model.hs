@@ -13,6 +13,7 @@ data Bullet =  Bullet
       bulletX :: Float
     , bulletY :: Float
     , bulletSpeed :: Float
+    , targetEnemy :: Bool
     }
 data Player = Player
     { playerX :: Float -- vast
@@ -39,15 +40,15 @@ data GameState = GameState {
                 , player :: Player
                 , enemies :: [Enemy]
                 , elapsedTime :: Float
-                , bullet :: Bullet 
+                , bullets :: [Bullet] 
                  
                  }
 
 initialState :: GameState
 initialState = GameState {
-                      infoToShow = DrawBullet
+                      infoToShow = DrawAll
                     , player = Player 0 0 10 False
                     , enemies = []
                     , elapsedTime = 0
-                    , bullet = Bullet 20 20 10
+                    , bullets = []
                   }
