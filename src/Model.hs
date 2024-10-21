@@ -41,6 +41,7 @@ data GameState = GameState {
                 , enemies :: [Enemy]
                 , elapsedTime :: Float
                 , bullets :: [Bullet] 
+                , score :: Int
                  
                  }
 
@@ -51,4 +52,5 @@ initialState = GameState {
                     , enemies = []
                     , elapsedTime = 0
                     , bullets = []
+                    , score = 0
                   }

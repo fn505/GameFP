@@ -39,7 +39,7 @@ step secs gstate = do
   --moving bullets
   let movedBullets = moveBullets(bullets gstate)
   --checks if bullets in the gamestate hit an enemy
-  let shotEnemy = any (\bullet -> any (checkHitEnemy bullet) updatedEnemies) (bullets gstate)
+  let shotEnemy = any (\enemy -> any (`checkHitEnemy` enemy) movedBullets) (enemies gstate)
 
   if shotEnemy
     then do
@@ -95,4 +95,5 @@ checkHitEnemy :: Bullet -> Enemy -> Bool
 checkHitEnemy (Bullet bx by _ _) (Enemy ex ey _ er _) =
     (ex + er >= bx) && (ex - er <= bx) &&
     (ey + er >= by) && (ey - er <= by)
+
 
