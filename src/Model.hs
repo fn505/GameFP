@@ -8,27 +8,26 @@ data InfoToShow = ShowNothing
                 | DrawAll
                 | DrawBullet
 
-data Bullet =  Bullet
+data Bullet =  MkBullet
     {
       bulletX :: Float
     , bulletY :: Float
     , bulletSpeed :: Float
     , targetEnemy :: Bool
     }
-data Player = Player
+data Player = MkPlayer
     { playerX :: Float -- vast
     , playerY :: Float -- beweegbaar  
     , playerRadius :: Float
     , dead :: Bool
     } deriving (Show, Eq) 
 
-data Enemy = Enemy
+data Enemy = MkEnemy
     { enemyX :: Float -- vast
     , enemyY :: Float -- beweegbaar  
     , speed :: Float -- voor nu een vaste waarde
     , enemyRadius :: Float
     , active :: Bool
-    
     } deriving (Show, Eq) 
 
 
@@ -48,7 +47,7 @@ data GameState = GameState {
 initialState :: GameState
 initialState = GameState {
                       infoToShow = DrawAll
-                    , player = Player 0 0 10 False
+                    , player = MkPlayer 0 0 10 False
                     , enemies = []
                     , elapsedTime = 0
                     , bullets = []
