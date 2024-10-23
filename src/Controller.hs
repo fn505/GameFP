@@ -78,7 +78,7 @@ inputKey ih@(MkInputHelper keyList _ _) (EventKey key Down _ _) gstate =
          in case key of
         SpecialKey KeySpace -> 
             let newBullet = spawnPlayerBullet (player gstate)
-            in gstate { bullets = newBullet : bullets gstate, inputHelper = updatedInputHelper }
+            in gstate { bullets = newBullet : bullets gstate}
         --later uitbreiden met pause en resume    
         _ -> gstate { inputHelper = updatedInputHelper }
 -- als een key losgelaten wordt -> verwijderen uit downkeys
