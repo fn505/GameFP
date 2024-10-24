@@ -24,19 +24,19 @@ drawAll :: (Player , [Enemy], [Bullet]) -> Picture
 drawAll (player, enemies, bullets) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets]
 
 drawPlayer :: Player -> Picture
-drawPlayer (MkPlayer x y r d) = pictures[translate x y $ color green $ circle r] 
+drawPlayer (MkPlayer pos r d) = pictures[translate (xCor pos) (yCor pos) $ color green $ circle r] 
 
 drawEnemies :: [Enemy] -> Picture
 drawEnemies = pictures . map drawEnemy
 
 drawEnemy :: Enemy -> Picture
-drawEnemy (MkEnemy x y s r a ) = pictures[translate x y $ color red $ circle r] 
+drawEnemy (MkEnemy pos s r a ) = pictures[translate (xCor pos) (yCor pos) $ color red $ circle r] 
 
 drawBullets :: [Bullet] -> Picture
 drawBullets = pictures . map drawBullet
 
 drawBullet :: Bullet -> Picture
-drawBullet (MkBullet x y _ _) = pictures[translate (x-10) y $ color blue $ rectangleSolid 20 5]
+drawBullet (MkBullet pos xr yr _ _) = pictures[translate ((xCor pos)-xr) (yCor pos) $ color blue $ rectangleSolid (2*xr) (2*yr)]
 
 
 

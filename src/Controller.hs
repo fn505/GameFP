@@ -33,10 +33,10 @@ generateRandomY :: RandomGen g => g -> (Float, g)
 generateRandomY gen = randomR (-150, 150) gen
 
 spawnEnemy :: Float ->Enemy
-spawnEnemy enemyYpos= MkEnemy 180 enemyYpos 10 10 True
+spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 10 10 True
 
 spawnPlayerBullet :: Player -> Bullet
-spawnPlayerBullet player = MkBullet ((playerX player) + 2*playerRadius player) (playerY player) 5 False
+spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 False
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
@@ -110,14 +110,7 @@ addKey ih k = ih{downKeys = k : downKeys ih}
 removeKey :: InputHelper -> Key -> InputHelper
 removeKey ih k = ih { downKeys = filter (/= k) (downKeys ih) }
 
-class KeysPressed a where
-  isKeyDown :: InputHelper -> a -> Bool 
 
-instance KeysPressed Key where 
-  isKeyDown ih k = k `elem` downKeys ih 
-
-instance KeysPressed Char where 
-  isKeyDown ih k = isKeyDown ih ((Char) k)
 
 data MovingDirection = MovingDown | NoMoving | MovingUp
 
@@ -131,37 +124,88 @@ getMovement ih | isKeyDown ih (Char 'w') = MovingUp
 updatePlayerMovement :: InputHelper -> Player -> Player
 updatePlayerMovement ih player =
   let playerMovement = getMovement ih
+      step = 10
   in case playerMovement of 
-    MovingUp -> movePlayer 10 player
-    MovingDown -> movePlayer (-10) player
+    MovingUp -> movePlayer step player
+    MovingDown -> movePlayer (-step) player
     NoMoving -> player
 
 movePlayer :: Float -> Player -> Player
-movePlayer delta player = player {playerY = playerY player + delta}
+movePlayer delta player@(MkPlayer pos _ _) = player {playerPos = MkPoint (xCor pos) (yCor pos + delta)}
 
 
 moveEnemies :: [Enemy] -> [Enemy]
 moveEnemies = map moveEnemy
 
 moveEnemy :: Enemy -> Enemy
-moveEnemy enemy = enemy {enemyX = enemyX enemy - speed enemy}
+moveEnemy enemy@(MkEnemy pos s _ _) = enemy {enemyPos = MkPoint (xCor pos - s) (yCor pos)}
 
 moveBullets :: [Bullet] -> [Bullet]
 moveBullets = map moveBullet
 
 moveBullet :: Bullet -> Bullet
-moveBullet bullet = bullet {bulletX = bulletX bullet + bulletSpeed bullet}
+moveBullet bullet@(MkBullet pos _ _ s _) = bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
+
+
+
 
 --check for collision between the player and the enemy
-checkCollision :: Player -> Enemy -> Bool
-checkCollision (MkPlayer px py pr _) (MkEnemy ex ey _ er _) =
-    ((ex + er) >= px - pr) && ((ex - er) <= px + pr) &&
-    ((ey + er) >= py - pr) && ((ey - er) <= py + pr)
+-- checkCollision :: Player -> Enemy -> Bool
+-- checkCollision (MkPlayer px py pr _) (MkEnemy ex ey _ er _) =
+--     ((ex + er) >= px - pr) && ((ex - er) <= px + pr) &&
+--     ((ey + er) >= py - pr) && ((ey - er) <= py + pr)
 
 --check if a bullet hits an enemy
-checkHitEnemy :: Bullet -> Enemy -> Bool
-checkHitEnemy (MkBullet bx by _ _) (MkEnemy ex ey _ er _) =
-    ((ex + er) >= bx) && ((ex - er) <= bx) &&
-    ((ey + er) >= by) && ((ey - er) <= by)
+-- checkHitEnemy :: Bullet -> Enemy -> Bool
+-- checkHitEnemy (MkBullet bx by _ _) (MkEnemy ex ey _ er _) =
+--     ((ex + er) >= bx) && ((ex - er) <= bx) &&
+
+class KeysPressed a where
+  isKeyDown :: InputHelper -> a -> Bool 
+
+instance KeysPressed Key where 
+  isKeyDown ih k = k `elem` downKeys ih 
+
+instance KeysPressed Char where 
+  isKeyDown ih k = isKeyDown ih ((Char) k)
+
+data Target = PlayerTarget | EnemyTarget -- | NoTarget
+
+class HasHitbox a where
+  getHitbox :: a -> Hitbox
+  getTarget :: a -> Target 
+
+instance HasHitbox Player where
+  getHitbox player = MkHitbox (playerPos player) (playerRadius player) (playerRadius player)
+  getTarget player = EnemyTarget
+  
+instance HasHitbox Enemy where
+  getHitbox enemy = MkHitbox (enemyPos enemy) (enemyRadius enemy) (enemyRadius enemy)
+  getTarget enemy = PlayerTarget
+
+instance HasHitbox Bullet where
+  getHitbox bullet = MkHitbox (bulletPos bullet) (bulletXRadius bullet) (bulletYRadius bullet)
+  getTraget bullet = if (targetEnemy bullet)
+                        then EnemyTarget
+                        else PlayerTarget
+                      
 
 
+hitboxCollision :: Hitbox -> Hitbox -> Bool
+hitboxcollision h1 h2 = 
+  let xCollision = ((xCor hitboxPos - xRadius) h2 <= (xCor hitboxPos + xRadius) h1) && ((xCor hitboxPos + xRadius) h2 >= (xCor hitboxPos - xRadius) h1)
+  let yCollision = ((yCor hitboxPos - yRadius) h2 <= (yCor hitboxPos + yRadius) h1) && ((yCor hitboxPos + yRadius) h2 >= (yCor hitboxPos - yRadius) h1)
+  in
+    xCollision && yCollision
+  
+
+objectsCollision :: (HasHitbox a,HasHitbox b) => a -> b -> Bool
+objectsCollision ob1 ob2 = 
+  let ob1Hitbox = getHitbox ob1
+      ob2Hitbox = getHitbox ob2
+      ob1Target = getTarget ob1
+      ob2Target = getTarget ob2
+  in if (ob1Target != ob2Target)
+        then hitboxCollision ob1Hitbox ob2Hitbox
+        else False
+  
