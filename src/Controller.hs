@@ -195,13 +195,6 @@ hitboxCollision h1 h2 =
       yCollision = ((yCor (hitboxPos h2) - yRadius h2) <= (yCor (hitboxPos h1) + yRadius h1)) && ((yCor (hitboxPos h2) + yRadius h2) >= (yCor (hitboxPos h1) - yRadius h1))
   in
     xCollision && yCollision
-  
--- hitboxCollision :: Hitbox -> Hitbox -> Bool
--- hitboxCollision h1 h2 = 
---   let xCollision = ((xCor hitboxPos - xRadius) h2 <= (xCor hitboxPos + xRadius) h1) && ((xCor hitboxPos + xRadius) h2 >= (xCor hitboxPos - xRadius) h1)
---       yCollision = ((yCor hitboxPos - yRadius) h2 <= (yCor hitboxPos + yRadius) h1) && ((yCor hitboxPos + yRadius) h2 >= (yCor hitboxPos - yRadius) h1)
---   in
---     xCollision && yCollision
 
 objectsCollision :: (Eq a, Eq b, HasHitbox a,HasHitbox b) => a -> b -> Bool
 objectsCollision ob1 ob2 = 
