@@ -169,7 +169,7 @@ instance KeysPressed Key where
 instance KeysPressed Char where 
   isKeyDown ih k = isKeyDown ih ((Char) k)
 
-data Target = PlayerTarget | EnemyTarget -- | NoTarget
+data Target = PlayerTarget | EnemyTarget deriving(Eq) -- | NoTarget
 
 class HasHitbox a where
   getHitbox :: a -> Hitbox
@@ -185,27 +185,31 @@ instance HasHitbox Enemy where
 
 instance HasHitbox Bullet where
   getHitbox bullet = MkHitbox (bulletPos bullet) (bulletXRadius bullet) (bulletYRadius bullet)
-  getTraget bullet = if (targetEnemy bullet)
+  getTarget bullet = if (targetEnemy bullet)
                         then EnemyTarget
                         else PlayerTarget
-                      
-
-
+    
 hitboxCollision :: Hitbox -> Hitbox -> Bool
-hitboxcollision h1 h2 = 
-  let xCollision = ((xCor hitboxPos - xRadius) h2 <= (xCor hitboxPos + xRadius) h1) && ((xCor hitboxPos + xRadius) h2 >= (xCor hitboxPos - xRadius) h1)
-  let yCollision = ((yCor hitboxPos - yRadius) h2 <= (yCor hitboxPos + yRadius) h1) && ((yCor hitboxPos + yRadius) h2 >= (yCor hitboxPos - yRadius) h1)
+hitboxCollision h1 h2 = 
+  let xCollision = ((xCor (hitboxPos h2) - xRadius h2) <= (xCor (hitboxPos h1) + xRadius h1)) && ((xCor (hitboxPos h2) + xRadius h2) >= (xCor (hitboxPos h1) - xRadius h1))
+      yCollision = ((yCor (hitboxPos h2) - yRadius h2) <= (yCor (hitboxPos h1) + yRadius h1)) && ((yCor (hitboxPos h2) + yRadius h2) >= (yCor (hitboxPos h1) - yRadius h1))
   in
     xCollision && yCollision
   
+-- hitboxCollision :: Hitbox -> Hitbox -> Bool
+-- hitboxCollision h1 h2 = 
+--   let xCollision = ((xCor hitboxPos - xRadius) h2 <= (xCor hitboxPos + xRadius) h1) && ((xCor hitboxPos + xRadius) h2 >= (xCor hitboxPos - xRadius) h1)
+--       yCollision = ((yCor hitboxPos - yRadius) h2 <= (yCor hitboxPos + yRadius) h1) && ((yCor hitboxPos + yRadius) h2 >= (yCor hitboxPos - yRadius) h1)
+--   in
+--     xCollision && yCollision
 
-objectsCollision :: (HasHitbox a,HasHitbox b) => a -> b -> Bool
+objectsCollision :: (Eq a, Eq b, HasHitbox a,HasHitbox b) => a -> b -> Bool
 objectsCollision ob1 ob2 = 
   let ob1Hitbox = getHitbox ob1
       ob2Hitbox = getHitbox ob2
       ob1Target = getTarget ob1
       ob2Target = getTarget ob2
-  in if (ob1Target != ob2Target)
+  in if (ob1Target /= ob2Target)
         then hitboxCollision ob1Hitbox ob2Hitbox
         else False
   
