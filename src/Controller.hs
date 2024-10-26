@@ -50,9 +50,9 @@ step secs gstate = do
   --let shotEnemy = any (\enemy -> any (`checkHitEnemy` enemy) updatedBullets) (enemies gstate)
   let collisionResult = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
   
-  newgstate <- handleCollisions collisionResult gstate
-  let updatedEnemies = moveEnemies (enemies newgstate)
-      updatedBullets = moveBullets(bullets newgstate)
+  gstate <- handleCollisions collisionResult gstate
+  let updatedEnemies = moveEnemies (enemies gstate)
+      updatedBullets = moveBullets(bullets gstate)
       
 
 
@@ -61,10 +61,10 @@ step secs gstate = do
     gen <- newStdGen -- maak een random generator aan
     let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
     let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
-    return $ newgstate { enemies = spawnedEnemy : updatedEnemies
+    return $ gstate { enemies = spawnedEnemy : updatedEnemies
                       , elapsedTime = 0
                       , bullets = updatedBullets }
-                      else return $ newgstate { player = updatedPlayer
+                      else return $ gstate { player = updatedPlayer
                       , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
                       , elapsedTime = elapsedTime gstate + secs
                       , bullets = updatedBullets }
