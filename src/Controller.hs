@@ -33,10 +33,10 @@ generateRandomY :: RandomGen g => g -> (Float, g)
 generateRandomY gen = randomR (-150, 150) gen
 
 spawnEnemy :: Float ->Enemy
-spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 1 10 True
+spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 10 10 True
 
 spawnPlayerBullet :: Player -> Bullet
-spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 1 True
+spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 True
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
@@ -206,13 +206,13 @@ hitboxCollision h1 h2 =
     xCollision && yCollision
   
 
-objectsCollision :: (HasHitbox a,HasHitbox b) => a -> b -> Bool
+objectsCollision :: (Eq a, Eq b, HasHitbox a,HasHitbox b) => a -> b -> Bool
 objectsCollision ob1 ob2 = 
   let ob1Hitbox = getHitbox ob1
       ob2Hitbox = getHitbox ob2
       ob1Target = getTarget ob1
       ob2Target = getTarget ob2
-  in if (not (ob1Target == ob2Target))
+  in if (ob1Target /= ob2Target)
         then hitboxCollision ob1Hitbox ob2Hitbox
         else False
   

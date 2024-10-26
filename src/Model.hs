@@ -14,8 +14,7 @@ data Hitbox = MkHitbox
     hitboxPos :: Point
   , xRadius :: Float
   , yRadius :: Float
-
-  }
+  }deriving(Show, Eq, Read)
 data Point = MkPoint 
   {
     xCor :: Float
