@@ -27,10 +27,12 @@ drawPlayer :: Player -> Picture
 drawPlayer (MkPlayer pos r d) = pictures[translate (xCor pos) (yCor pos) $ color green $ circle r] 
 
 drawEnemies :: [Enemy] -> Picture
-drawEnemies = pictures . map drawEnemy
+drawEnemies = pictures . map drawEnemy . filter active
 
 drawEnemy :: Enemy -> Picture
-drawEnemy (MkEnemy pos s r a ) = pictures[translate (xCor pos) (yCor pos) $ color red $ circle r] 
+drawEnemy (MkEnemy pos s r a ) = if (a == True)
+  then do pictures[translate (xCor pos) (yCor pos) $ color red $ circle r] 
+  else mempty
 
 drawBullets :: [Bullet] -> Picture
 drawBullets = pictures . map drawBullet

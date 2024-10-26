@@ -33,10 +33,10 @@ generateRandomY :: RandomGen g => g -> (Float, g)
 generateRandomY gen = randomR (-150, 150) gen
 
 spawnEnemy :: Float ->Enemy
-spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 10 10 True
+spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 1 10 True
 
 spawnPlayerBullet :: Player -> Bullet
-spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 False
+spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 1 True
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
@@ -44,25 +44,30 @@ step secs gstate = do
 
   let updatedPlayer = updatePlayerMovement (inputHelper gstate) (player gstate)
   -- Move the enemies
-  let updatedEnemies = moveEnemies (enemies gstate)
+
   --moving bullets
-  let updatedBullets = moveBullets(bullets gstate)
   --checks if any bullets in the gamestate hit any enemy
   --let shotEnemy = any (\enemy -> any (`checkHitEnemy` enemy) updatedBullets) (enemies gstate)
-  -- let collision = any(checkCollision(player gstate)) updatedEnemies
+  let collisionResult = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
+  
+  newgstate <- handleCollisions collisionResult gstate
+  let updatedEnemies = moveEnemies (enemies newgstate)
+      updatedBullets = moveBullets(bullets newgstate)
+      
+
 
   if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
     then do -- spawn an enemy every 1.5 secs + update gamestate
-      gen <- newStdGen -- maak een random generator aan
-      let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
-      let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
-      return $ gstate { enemies = spawnedEnemy : updatedEnemies
-                        , elapsedTime = 0
-                        , bullets = updatedBullets }
-    else return $ gstate { player = updatedPlayer
-                         , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
-                         , elapsedTime = elapsedTime gstate + secs
-                         , bullets = updatedBullets }
+    gen <- newStdGen -- maak een random generator aan
+    let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
+    let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
+    return $ newgstate { enemies = spawnedEnemy : updatedEnemies
+                      , elapsedTime = 0
+                      , bullets = updatedBullets }
+                      else return $ newgstate { player = updatedPlayer
+                      , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
+                      , elapsedTime = elapsedTime gstate + secs
+                      , bullets = updatedBullets }
 
 -- | Handle user input
 input :: (Monad m) => Event -> GameState -> m GameState
@@ -169,7 +174,9 @@ instance KeysPressed Key where
 instance KeysPressed Char where 
   isKeyDown ih k = isKeyDown ih ((Char) k)
 
-data Target = PlayerTarget | EnemyTarget -- | NoTarget
+data Target = PlayerTarget | EnemyTarget deriving (Show, Eq) -- | NoTarget
+data CollisionType = PlayerEnemyCollision | BulletEnemyCollision | NoCollision deriving(Show, Eq)
+
 
 class HasHitbox a where
   getHitbox :: a -> Hitbox
@@ -185,16 +192,16 @@ instance HasHitbox Enemy where
 
 instance HasHitbox Bullet where
   getHitbox bullet = MkHitbox (bulletPos bullet) (bulletXRadius bullet) (bulletYRadius bullet)
-  getTraget bullet = if (targetEnemy bullet)
+  getTarget bullet = if (targetEnemy bullet)
                         then EnemyTarget
                         else PlayerTarget
                       
 
 
 hitboxCollision :: Hitbox -> Hitbox -> Bool
-hitboxcollision h1 h2 = 
-  let xCollision = ((xCor hitboxPos - xRadius) h2 <= (xCor hitboxPos + xRadius) h1) && ((xCor hitboxPos + xRadius) h2 >= (xCor hitboxPos - xRadius) h1)
-  let yCollision = ((yCor hitboxPos - yRadius) h2 <= (yCor hitboxPos + yRadius) h1) && ((yCor hitboxPos + yRadius) h2 >= (yCor hitboxPos - yRadius) h1)
+hitboxCollision h1 h2 = 
+  let xCollision = ((xCor (hitboxPos h2) - (xRadius h2))  <= (xCor (hitboxPos h1) +( xRadius h1))) && ((xCor (hitboxPos h2) + (xRadius h2)) >= (xCor (hitboxPos h1) - (xRadius h1)))
+      yCollision = ((yCor (hitboxPos h2) - (yRadius h2))  <= (yCor (hitboxPos h1) + (yRadius h2))) && ((yCor (hitboxPos h2) + (yRadius h2)) >= (yCor (hitboxPos h1) - (yRadius h1)))
   in
     xCollision && yCollision
   
@@ -205,7 +212,39 @@ objectsCollision ob1 ob2 =
       ob2Hitbox = getHitbox ob2
       ob1Target = getTarget ob1
       ob2Target = getTarget ob2
-  in if (ob1Target != ob2Target)
+  in if (not (ob1Target == ob2Target))
         then hitboxCollision ob1Hitbox ob2Hitbox
         else False
   
+
+identifyCollisions :: Player -> [Enemy] -> [Bullet] -> CollisionType
+identifyCollisions player enemies bullets =
+  let playerEnemyCollision = any (objectsCollision player) enemies
+      bulletEnemyCollision = any (\bullet -> any (objectsCollision bullet) enemies) bullets
+  in if playerEnemyCollision
+       then PlayerEnemyCollision
+       else if bulletEnemyCollision
+            then BulletEnemyCollision 
+            else NoCollision
+
+
+handleCollisions :: CollisionType -> GameState -> IO GameState
+handleCollisions PlayerEnemyCollision gstate = do 
+  putStrLn "player enemy collison"
+  return gstate 
+
+handleCollisions BulletEnemyCollision gstate = do
+  putStrLn "bullet collision"
+
+  let collidedBullets = filter (\bullet -> any (objectsCollision bullet) (enemies gstate)) (bullets gstate)
+  let collidedEnemies = filter (\enemy -> any (objectsCollision enemy) collidedBullets) (enemies gstate)
+
+  let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
+  let updatedEnemies = filter (`notElem` collidedEnemies) (enemies gstate)
+
+  return gstate { bullets = updatedBullets, enemies = updatedEnemies }
+
+
+handleCollisions NoCollision gstate = do
+  return gstate
+
