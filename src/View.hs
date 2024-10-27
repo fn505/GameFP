@@ -37,9 +37,12 @@ drawEnemy (MkEnemy pos s r a ) = if (a == True)
 drawBullets :: [Bullet] -> Picture
 drawBullets = pictures . map drawBullet
 
+-- drawBullet :: Bullet -> Picture
+-- drawBullet (MkBullet pos xr yr _ _) = pictures[translate ((xCor pos)-xr) (yCor pos) $ color blue $ rectangleSolid (2*xr) (2*yr)]
+
 drawBullet :: Bullet -> Picture
-drawBullet (MkBullet pos xr yr _ _) = pictures[translate ((xCor pos)-xr) (yCor pos) $ color blue $ rectangleSolid (2*xr) (2*yr)]
-
-
+drawBullet (MkBullet pos xr yr _ targetEnemies) = if(targetEnemies) 
+                                                    then pictures[translate ((xCor pos)-xr) (yCor pos) $ color blue $ rectangleSolid (2*xr) (2*yr)]
+                                                    else pictures[translate ((xCor pos)-xr) (yCor pos) $ color yellow $ rectangleSolid (2*xr) (2*yr)]
 
 

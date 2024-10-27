@@ -33,10 +33,13 @@ generateRandomY :: RandomGen g => g -> (Float, g)
 generateRandomY gen = randomR (-150, 150) gen
 
 spawnEnemy :: Float ->Enemy
-spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 10 10 True
+spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 5 10 True
 
 spawnPlayerBullet :: Player -> Bullet
 spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 True
+
+spawnEnemyBullet :: Enemy -> Bullet
+spawnEnemyBullet (MkEnemy pos _ r _) = MkBullet (MkPoint ((xCor pos) - 2*r) (yCor pos)) 10 2.5 10 False
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
@@ -61,13 +64,16 @@ step secs gstate = do
     gen <- newStdGen -- maak een random generator aan
     let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
     let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
+    let newBullets = map spawnEnemyBullet updatedEnemies ++ updatedBullets
     return $ gstate { enemies = spawnedEnemy : updatedEnemies
                       , elapsedTime = 0
-                      , bullets = updatedBullets }
-                      else return $ gstate { player = updatedPlayer
-                      , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
-                      , elapsedTime = elapsedTime gstate + secs
-                      , bullets = updatedBullets }
+                      , bullets = newBullets -- updatedBullets
+                      , enemyShootTimer = 0 }
+    else return $ gstate { player = updatedPlayer
+    , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
+    , elapsedTime = elapsedTime gstate + secs
+    , bullets = updatedBullets
+    , enemyShootTimer = 0 }
 
 -- | Handle user input
 input :: (Monad m) => Event -> GameState -> m GameState
@@ -148,9 +154,13 @@ moveEnemy enemy@(MkEnemy pos s _ _) = enemy {enemyPos = MkPoint (xCor pos - s) (
 moveBullets :: [Bullet] -> [Bullet]
 moveBullets = map moveBullet
 
-moveBullet :: Bullet -> Bullet
-moveBullet bullet@(MkBullet pos _ _ s _) = bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
+-- moveBullet :: Bullet -> Bullet
+-- moveBullet bullet@(MkBullet pos _ _ s _) = bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
 
+moveBullet :: Bullet -> Bullet
+moveBullet bullet@(MkBullet pos _ _ s targetEnemies) = if(targetEnemies)
+                                                        then bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
+                                                        else bullet {bulletPos = MkPoint (xCor pos - s) (yCor pos)}
 
 
 
@@ -200,8 +210,8 @@ instance HasHitbox Bullet where
 
 hitboxCollision :: Hitbox -> Hitbox -> Bool
 hitboxCollision h1 h2 = 
-  let xCollision = ((xCor (hitboxPos h2) - (xRadius h2))  <= (xCor (hitboxPos h1) +( xRadius h1))) && ((xCor (hitboxPos h2) + (xRadius h2)) >= (xCor (hitboxPos h1) - (xRadius h1)))
-      yCollision = ((yCor (hitboxPos h2) - (yRadius h2))  <= (yCor (hitboxPos h1) + (yRadius h2))) && ((yCor (hitboxPos h2) + (yRadius h2)) >= (yCor (hitboxPos h1) - (yRadius h1)))
+  let xCollision = ((xCor (hitboxPos h2) - (xRadius h2)) <= (xCor (hitboxPos h1) + (xRadius h1))) && ((xCor (hitboxPos h2) + (xRadius h2)) >= (xCor (hitboxPos h1) - (xRadius h1)))
+      yCollision = ((yCor (hitboxPos h2) - (yRadius h2)) <= (yCor (hitboxPos h1) + (yRadius h1))) && ((yCor (hitboxPos h2) + (yRadius h2)) >= (yCor (hitboxPos h1) - (yRadius h1)))
   in
     xCollision && yCollision
   

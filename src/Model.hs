@@ -60,7 +60,7 @@ data GameState = GameState {
                 , bullets :: [Bullet] 
                 , score :: Int
                 , inputHelper :: InputHelper
-                 
+                , enemyShootTimer :: Float 
                  }
 
 initialState :: GameState
@@ -72,4 +72,5 @@ initialState = GameState {
                     , bullets = []
                     , score = 0
                     , inputHelper = MkInputHelper [] (400,400) (0,0)
+                    , enemyShootTimer = 0
                   }
