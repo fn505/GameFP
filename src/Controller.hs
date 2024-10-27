@@ -185,7 +185,7 @@ instance KeysPressed Char where
   isKeyDown ih k = isKeyDown ih ((Char) k)
 
 data Target = PlayerTarget | EnemyTarget deriving (Show, Eq) -- | NoTarget
-data CollisionType = PlayerEnemyCollision | BulletEnemyCollision | NoCollision deriving(Show, Eq)
+data CollisionType = PlayerEnemyCollision | BulletEnemyCollision | BulletPlayerCollision | NoCollision deriving(Show, Eq)
 
 
 class HasHitbox a where
@@ -229,13 +229,16 @@ objectsCollision ob1 ob2 =
 
 identifyCollisions :: Player -> [Enemy] -> [Bullet] -> CollisionType
 identifyCollisions player enemies bullets =
-  let playerEnemyCollision = any (objectsCollision player) enemies
-      bulletEnemyCollision = any (\bullet -> any (objectsCollision bullet) enemies) bullets
+  let playerEnemyCollision  = any (objectsCollision player) enemies
+      bulletEnemyCollision  = any (\bullet -> any (objectsCollision bullet) enemies) bullets
+      bulletPlayerCollision = any (`objectsCollision` player) bullets
   in if playerEnemyCollision
        then PlayerEnemyCollision
        else if bulletEnemyCollision
             then BulletEnemyCollision 
-            else NoCollision
+            else if bulletPlayerCollision
+              then BulletPlayerCollision
+              else NoCollision
 
 
 handleCollisions :: CollisionType -> GameState -> IO GameState
@@ -254,6 +257,16 @@ handleCollisions BulletEnemyCollision gstate = do
 
   return gstate { bullets = updatedBullets, enemies = updatedEnemies }
 
+handleCollisions BulletPlayerCollision gstate = do
+  putStrLn "player hit by bullet"
+
+  let collidedBullets = filter (\bullet -> objectsCollision (player gstate) bullet) (bullets gstate)
+  -- player leven -1 regelen. als we levens in de gamestate opslaan kunnen we zoiets gebruiken:
+  --  let updatedPlayer = (player gstate) { playerHealth = playerHealth (player gstate) - 1 }
+
+  let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
+
+  return gstate { bullets = updatedBullets }
 
 handleCollisions NoCollision gstate = do
   return gstate
