@@ -9,6 +9,7 @@ data InfoToShow = ShowNothing
                 | DrawAll
                 | DrawBullet
 
+data Lives= Zero | One | Two | Three
 data Hitbox = MkHitbox
   {
     hitboxPos :: Point
@@ -61,6 +62,7 @@ data GameState = GameState {
                 , score :: Int
                 , inputHelper :: InputHelper
                 , enemyShootTimer :: Float 
+                , lives :: Lives
                  }
 
 initialState :: GameState
@@ -73,4 +75,5 @@ initialState = GameState {
                     , score = 0
                     , inputHelper = MkInputHelper [] (400,400) (0,0)
                     , enemyShootTimer = 0
+                    , lives = Three
                   }

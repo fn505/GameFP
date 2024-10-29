@@ -254,8 +254,8 @@ handleCollisions BulletEnemyCollision gstate = do
 
   let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
   let updatedEnemies = filter (`notElem` collidedEnemies) (enemies gstate)
-
-  return gstate { bullets = updatedBullets, enemies = updatedEnemies }
+  let accumalatedScore = length collidedEnemies
+  return gstate { bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore }
 
 handleCollisions BulletPlayerCollision gstate = do
   putStrLn "player hit by bullet"
