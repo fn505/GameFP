@@ -46,6 +46,7 @@ step :: Float -> GameState -> IO GameState
 step secs gstate = do
 
   let updatedPlayer = updatePlayerMovement (inputHelper gstate) (player gstate)
+
   -- Move the enemies
 
   --moving bullets
@@ -56,6 +57,8 @@ step secs gstate = do
   gstate <- handleCollisions collisionResult gstate
   let updatedEnemies = moveEnemies (enemies gstate)
       updatedBullets = moveBullets(bullets gstate)
+      updatedExplosions = updateExplosions secs (explosions gstate)
+
       
 
 
@@ -68,12 +71,14 @@ step secs gstate = do
     return $ gstate { enemies = spawnedEnemy : updatedEnemies
                       , elapsedTime = 0
                       , bullets = newBullets -- updatedBullets
-                      , enemyShootTimer = 0 }
+                      , enemyShootTimer = 0
+                      , explosions = updatedExplosions }
     else return $ gstate { player = updatedPlayer
     , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
     , elapsedTime = elapsedTime gstate + secs
     , bullets = updatedBullets
-    , enemyShootTimer = 0 }
+    , enemyShootTimer = 0 
+    , explosions = updatedExplosions}
 
 -- | Handle user input
 input :: (Monad m) => Event -> GameState -> m GameState
@@ -250,12 +255,15 @@ handleCollisions BulletEnemyCollision gstate = do
   putStrLn "bullet collision"
 
   let collidedBullets = filter (\bullet -> any (objectsCollision bullet) (enemies gstate)) (bullets gstate)
-  let collidedEnemies = filter (\enemy -> any (objectsCollision enemy) collidedBullets) (enemies gstate)
+      collidedEnemies = filter (\enemy -> any (objectsCollision enemy) collidedBullets) (enemies gstate)
 
-  let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
-  let updatedEnemies = filter (`notElem` collidedEnemies) (enemies gstate)
-  let accumalatedScore = length collidedEnemies
-  return gstate { bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore }
+      updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
+      updatedEnemies = filter (`notElem` collidedEnemies) (enemies gstate)
+
+      newExplosions = [MkExplosion (enemyPos e) 20 5 2 True | e <- collidedEnemies]
+  
+      accumalatedScore = length collidedEnemies
+  return gstate { bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore, explosions = explosions gstate ++ newExplosions }
 
 handleCollisions BulletPlayerCollision gstate = do
   putStrLn "player hit by bullet"
@@ -271,3 +279,12 @@ handleCollisions BulletPlayerCollision gstate = do
 handleCollisions NoCollision gstate = do
   return gstate
 
+
+updateExplosions :: Float -> [Explosion] -> [Explosion]
+updateExplosions secs explosions = 
+  [explosion { explosionRadius = explosionRadius explosion - (decreaseRadius explosion)
+             , explosionTimer = explosionTimer explosion - secs
+             , isSolid = not(isSolid explosion)}
+             | explosion <- explosions 
+             , explosionTimer explosion > secs
+             , explosionRadius explosion >= 0]

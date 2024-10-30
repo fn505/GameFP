@@ -9,13 +9,25 @@ data InfoToShow = ShowNothing
                 | DrawAll
                 | DrawBullet
 
+
+data Explosion = MkExplosion 
+  {
+    explosionPos :: Point
+  , explosionRadius :: Float
+  , decreaseRadius :: Float
+  , explosionTimer :: Float
+  , isSolid :: Bool
+  }deriving(Show, Eq, Read)
 data Lives= Zero | One | Two | Three
+
 data Hitbox = MkHitbox
   {
     hitboxPos :: Point
   , xRadius :: Float
   , yRadius :: Float
   }deriving(Show, Eq, Read)
+
+
 data Point = MkPoint 
   {
     xCor :: Float
@@ -63,6 +75,7 @@ data GameState = GameState {
                 , inputHelper :: InputHelper
                 , enemyShootTimer :: Float 
                 , lives :: Lives
+                , explosions :: [Explosion]
                  }
 
 initialState :: GameState
@@ -76,4 +89,5 @@ initialState = GameState {
                     , inputHelper = MkInputHelper [] (400,400) (0,0)
                     , enemyShootTimer = 0
                     , lives = Three
+                    , explosions = []
                   }
