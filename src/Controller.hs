@@ -9,25 +9,6 @@ import Graphics.Gloss.Interface.IO.Game
 import System.Random
 
 
-
--- step :: Float -> GameState -> IO GameState
--- step secs gstate
---   | elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
---   = -- We show a new random number
---     do randomNumber <- randomIO
---        let newNumber = abs randomNumber `mod` 10
---        return $ GameState (ShowANumber newNumber) 0
---   | otherwise
---   = -- Just update the elapsed time
---     return $ gstate { elapsedTime = elapsedTime gstate + secs }
-
-
-
--- spawnEnemy :: IO Enemy
--- spawnEnemy  = do
---   enemyYpos <- randomRIO (-150, 150)
---   return $ MkEnemy 180 enemyYpos 10 10 True
-
 -- randomY waarde tussen -150 en 150
 generateRandomY :: RandomGen g => g -> (Float, g)
 generateRandomY gen = randomR (-150, 150) gen
@@ -36,49 +17,56 @@ spawnEnemy :: Float ->Enemy
 spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 5 10 True
 
 spawnPlayerBullet :: Player -> Bullet
-spawnPlayerBullet (MkPlayer pos r _) = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 True
+spawnPlayerBullet (MkPlayer pos r _ _)  = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 True
 
 spawnEnemyBullet :: Enemy -> Bullet
 spawnEnemyBullet (MkEnemy pos _ r _) = MkBullet (MkPoint ((xCor pos) - 2*r) (yCor pos)) 10 2.5 10 False
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
-step secs gstate = do
+step secs gstate = 
+  let status = gameStatus gstate
+  in case status of
+    Running -> do
+      let updatedPlayer = updatePlayerMovement (inputHelper gstate) (player gstate)
 
-  let updatedPlayer = updatePlayerMovement (inputHelper gstate) (player gstate)
+      -- Move the enemies
 
-  -- Move the enemies
-
-  --moving bullets
-  --checks if any bullets in the gamestate hit any enemy
-  --let shotEnemy = any (\enemy -> any (`checkHitEnemy` enemy) updatedBullets) (enemies gstate)
-  let collisionResult = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
-  
-  gstate <- handleCollisions collisionResult gstate
-  let updatedEnemies = moveEnemies (enemies gstate)
-      updatedBullets = moveBullets(bullets gstate)
-      updatedExplosions = updateExplosions secs (explosions gstate)
-
+      --moving bullets
+      --checks if any bullets in the gamestate hit any enemy
+      --let shotEnemy = any (\enemy -> any (`checkHitEnemy` enemy) updatedBullets) (enemies gstate)
+      let collisionResult = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
       
+      gstate <- handleCollisions collisionResult gstate
+      let updatedEnemies = moveEnemies (enemies gstate)
+          updatedBullets = moveBullets(bullets gstate)
+          updatedExplosions = updateExplosions secs (explosions gstate)
+          updatedNotifications = updateNotifications secs (notifications gstate)
+         
+
+          
 
 
-  if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
-    then do -- spawn an enemy every 1.5 secs + update gamestate
-    gen <- newStdGen -- maak een random generator aan
-    let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
-    let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
-    let newBullets = map spawnEnemyBullet updatedEnemies ++ updatedBullets
-    return $ gstate { enemies = spawnedEnemy : updatedEnemies
-                      , elapsedTime = 0
-                      , bullets = newBullets -- updatedBullets
-                      , enemyShootTimer = 0
-                      , explosions = updatedExplosions }
-    else return $ gstate { player = updatedPlayer
-    , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
-    , elapsedTime = elapsedTime gstate + secs
-    , bullets = updatedBullets
-    , enemyShootTimer = 0 
-    , explosions = updatedExplosions}
+      if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
+        then do -- spawn an enemy every 1.5 secs + update gamestate
+        gen <- newStdGen -- maak een random generator aan
+        let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
+        let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
+        let newBullets = map spawnEnemyBullet updatedEnemies ++ updatedBullets
+        return $ gstate { enemies = spawnedEnemy : updatedEnemies
+                          , elapsedTime = 0
+                          , bullets = newBullets -- updatedBullets
+                          , enemyShootTimer = 0
+                          , explosions = updatedExplosions
+                          , notifications = updatedNotifications }
+        else return $ gstate { player = updatedPlayer
+        , enemies = updatedEnemies -- don't spawn enemy before those 1.5 secs 
+        , elapsedTime = elapsedTime gstate + secs
+        , bullets = updatedBullets
+        , enemyShootTimer = 0 
+        , explosions = updatedExplosions
+        , notifications = updatedNotifications} 
+    _ -> return gstate
 
 -- | Handle user input
 input :: (Monad m) => Event -> GameState -> m GameState
@@ -95,7 +83,11 @@ inputKey ih@(MkInputHelper keyList _ _) (EventKey key Down _ _) gstate =
         SpecialKey KeySpace -> 
             let newBullet = spawnPlayerBullet (player gstate)
             in gstate { bullets = newBullet : bullets gstate}
-        --later uitbreiden met pause en resume    
+        --later uitbreiden met pause en resume 
+        Char 'p' -> let status = gameStatus gstate
+                    in case status of 
+                      Running -> gstate {gameStatus = Paused, infoToShow = DrawPauseScreen}
+                      Paused  -> gstate {gameStatus = Running, infoToShow = DrawAll}
         _ -> gstate { inputHelper = updatedInputHelper }
 -- als een key losgelaten wordt -> verwijderen uit downkeys
 inputKey ih@(MkInputHelper keyList _ _) (EventKey key Up _ _) gstate = 
@@ -103,20 +95,6 @@ inputKey ih@(MkInputHelper keyList _ _) (EventKey key Up _ _) gstate =
     in gstate { inputHelper = updatedInputHelper } 
 
 inputKey (MkInputHelper keyList _ _) _ gstate = gstate -- Otherwise keep the same
-
-
--- oude code inputkey
--- when you press the spacebar, a new bullet gets created at the place of the player + add the bullet to the gamestate
--- inputKey (EventKey (SpecialKey KeySpace) Down _ _) gstate
---   = let newBullet = spawnPlayerBullet (player gstate)
---     in gstate {bullets = newBullet : bullets gstate}
--- inputKey (EventKey (Char 'w') Down _ _) gstate 
---   = gstate { player = movePlayer 10 (player gstate)}
--- inputKey (EventKey (Char 's') Down _ _) gstate
---   = gstate { player = movePlayer (-10) (player gstate)}
-
--- inputKey ih@(MkInputHelper keyList _ _) (EventKey (SpecialKey KeySpace) Down _ _) gstate = let newBullet = spawnPlayerBullet (player gstate)
---     in gstate { bullets = newBullet : bullets gstate }
 
 -- key toevoegen aan downkeys
 addKey :: InputHelper -> Key -> InputHelper
@@ -147,7 +125,7 @@ updatePlayerMovement ih player =
     NoMoving -> player
 
 movePlayer :: Float -> Player -> Player
-movePlayer delta player@(MkPlayer pos _ _) = player {playerPos = MkPoint (xCor pos) (yCor pos + delta)}
+movePlayer delta player@(MkPlayer pos _ _ _) = player {playerPos = MkPoint (xCor pos) (yCor pos + delta)}
 
 
 moveEnemies :: [Enemy] -> [Enemy]
@@ -159,26 +137,12 @@ moveEnemy enemy@(MkEnemy pos s _ _) = enemy {enemyPos = MkPoint (xCor pos - s) (
 moveBullets :: [Bullet] -> [Bullet]
 moveBullets = map moveBullet
 
--- moveBullet :: Bullet -> Bullet
--- moveBullet bullet@(MkBullet pos _ _ s _) = bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
-
 moveBullet :: Bullet -> Bullet
 moveBullet bullet@(MkBullet pos _ _ s targetEnemies) = if(targetEnemies)
                                                         then bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
                                                         else bullet {bulletPos = MkPoint (xCor pos - s) (yCor pos)}
 
 
-
---check for collision between the player and the enemy
--- checkCollision :: Player -> Enemy -> Bool
--- checkCollision (MkPlayer px py pr _) (MkEnemy ex ey _ er _) =
---     ((ex + er) >= px - pr) && ((ex - er) <= px + pr) &&
---     ((ey + er) >= py - pr) && ((ey - er) <= py + pr)
-
---check if a bullet hits an enemy
--- checkHitEnemy :: Bullet -> Enemy -> Bool
--- checkHitEnemy (MkBullet bx by _ _) (MkEnemy ex ey _ er _) =
---     ((ex + er) >= bx) && ((ex - er) <= bx) &&
 
 class KeysPressed a where
   isKeyDown :: InputHelper -> a -> Bool 
@@ -263,21 +227,36 @@ handleCollisions BulletEnemyCollision gstate = do
       newExplosions = [MkExplosion (enemyPos e) 20 5 2 True | e <- collidedEnemies]
   
       accumalatedScore = length collidedEnemies
-  return gstate { bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore, explosions = explosions gstate ++ newExplosions }
+  return gstate {bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore, explosions = explosions gstate ++ newExplosions }
 
 handleCollisions BulletPlayerCollision gstate = do
   putStrLn "player hit by bullet"
 
   let collidedBullets = filter (\bullet -> objectsCollision (player gstate) bullet) (bullets gstate)
-  -- player leven -1 regelen. als we levens in de gamestate opslaan kunnen we zoiets gebruiken:
-  --  let updatedPlayer = (player gstate) { playerHealth = playerHealth (player gstate) - 1 }
+  
+  let updatedLives = updateLives (lives gstate)  
+ 
+  let newNotifications = [MkNotification (playerPos (player gstate)) 0.5]
 
   let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
 
-  return gstate { bullets = updatedBullets }
+  return gstate { bullets = updatedBullets, lives = updatedLives, notifications = notifications gstate ++ newNotifications}
 
 handleCollisions NoCollision gstate = do
-  return gstate
+  return gstate 
+
+--makeWasHitTrue :: Player -> Player
+--makeWasHitTrue player = player {wasHit = True}
+
+--makeWasHitFalse :: Player -> Player
+--makeWasHitFalse player = player {wasHit = False}
+
+updateLives :: Lives -> Lives
+updateLives lives = case lives of 
+  Three -> Two
+  Two -> One
+  One -> Zero
+  Zero -> Zero
 
 
 updateExplosions :: Float -> [Explosion] -> [Explosion]
@@ -288,3 +267,11 @@ updateExplosions secs explosions =
              | explosion <- explosions 
              , explosionTimer explosion > secs
              , explosionRadius explosion >= 0]
+
+updateNotifications :: Float -> [Notification] -> [Notification]
+updateNotifications secs notifications = [notification {notifyTimer = notifyTimer notification - secs } | notification <-notifications, notifyTimer notification > secs]
+
+-- updatePlayerDrawing :: Float -> Player -> Player
+-- updatePlayerDrawing secs player = 
+--   player {wasHit = not (wasHit player)
+--         , hitTimer = hitTimer player - secs}

@@ -10,21 +10,36 @@ view = return . viewPure
 
 viewPure :: GameState -> Picture
 viewPure gstate = case infoToShow gstate of
-  ShowNothing   -> blank
-  DrawPlayer    -> drawPlayer (player gstate)
-  DrawEnemies   -> drawEnemies (enemies gstate)
-  DrawAll       -> drawAll (player gstate, enemies gstate, bullets gstate, lives gstate, score gstate, explosions gstate)
-  DrawBullet    -> drawBullets(bullets gstate)
+  ShowNothing     -> blank
+  DrawPlayer      -> drawPlayer (player gstate)
+  DrawEnemies     -> drawEnemies (enemies gstate)
+  DrawAll         -> drawAll (player gstate, enemies gstate, bullets gstate, lives gstate, score gstate, explosions gstate, notifications gstate)
+  DrawBullet      -> drawBullets(bullets gstate)
+  DrawPauseScreen -> drawPauseScreen 
   -- ShowANumber n -> color green (text (show n))
   -- ShowAChar   c -> color green (text [c])
   -- ShowCircle -> let (x, y) = circlePos gstate
   --               in translate x y $ color blue (circle 50)
 
-drawAll :: (Player , [Enemy], [Bullet], Lives, Int, [Explosion]) -> Picture
-drawAll (player, enemies, bullets, lives, g, explosions) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets,drawLives lives, drawScore g, drawExplosions explosions  ]
+
+drawPauseScreen :: Picture
+drawPauseScreen = 
+  let pauseString = "Paused"
+  in pictures [ translate (-190) 0 $ scaleText 0.85 $ color green (text pauseString)]
+
+drawAll :: (Player , [Enemy], [Bullet], Lives, Int, [Explosion], [Notification]) -> Picture
+drawAll (player, enemies, bullets, lives, g, explosions, notifications) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets,drawLives lives, drawScore g, drawExplosions explosions, drawNotifications notifications  ]
+
+drawNotifications :: [Notification] -> Picture
+drawNotifications = pictures . map drawNotification
+
+drawNotification :: Notification -> Picture
+drawNotification (MkNotification pos _) = 
+  let notifString = "HIT"
+  in pictures [translate (xCor pos) (yCor pos) $ scaleText 0.15 $ color white (text notifString)]
 
 drawPlayer :: Player -> Picture
-drawPlayer (MkPlayer pos r d) = pictures[translate (xCor pos) (yCor pos) $ color green $ circleSolid r] 
+drawPlayer (MkPlayer pos r h d) = pictures[translate (xCor pos) (yCor pos) $ color green $ circleSolid r] 
 
 drawEnemies :: [Enemy] -> Picture
 drawEnemies = pictures . map drawEnemy . filter active
@@ -36,9 +51,6 @@ drawEnemy (MkEnemy pos s r a ) = if (a == True)
 
 drawBullets :: [Bullet] -> Picture
 drawBullets = pictures . map drawBullet
-
--- drawBullet :: Bullet -> Picture
--- drawBullet (MkBullet pos xr yr _ _) = pictures[translate ((xCor pos)-xr) (yCor pos) $ color blue $ rectangleSolid (2*xr) (2*yr)]
 
 drawBullet :: Bullet -> Picture
 drawBullet (MkBullet pos xr yr _ targetEnemies) = if(targetEnemies) 
@@ -65,12 +77,12 @@ drawLives :: Lives -> Picture
 drawLives n = 
   let lives = getLives n
       liveDisplay = "Lives : " ++ lives
-  in pictures [ translate (-190) 185 $ scaleText $ color green (text liveDisplay)] 
+  in pictures [ translate (-190) 185 $ scaleText 0.1 $ color green (text liveDisplay)] 
 
 drawScore :: Int -> Picture
 drawScore score = 
   let scoreDisplay = "Score : " ++ show(score)
-  in pictures [ translate (0) 185 $ scaleText $ color green (text scoreDisplay)] 
+  in pictures [ translate (0) 185 $ scaleText 0.1 $ color green (text scoreDisplay)] 
 
-scaleText :: Picture -> Picture
-scaleText target = scale 0.1 0.1 target
+scaleText :: Float -> Picture -> Picture
+scaleText factor target = scale factor factor target

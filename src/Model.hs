@@ -8,8 +8,16 @@ data InfoToShow = ShowNothing
                 | DrawEnemies
                 | DrawAll
                 | DrawBullet
+                | DrawPauseScreen
 
+data GameStatus = Running | Paused | GameOver
 
+data Notification = MkNotification
+  {
+    notifyPos :: Point
+  , notifyTimer :: Float
+
+  }
 data Explosion = MkExplosion 
   {
     explosionPos :: Point
@@ -18,6 +26,7 @@ data Explosion = MkExplosion
   , explosionTimer :: Float
   , isSolid :: Bool
   }deriving(Show, Eq, Read)
+
 data Lives= Zero | One | Two | Three
 
 data Hitbox = MkHitbox
@@ -47,6 +56,7 @@ data Bullet = MkBullet
 data Player = MkPlayer
     { playerPos :: Point -- beweegbaar  
     , playerRadius :: Float
+    , wasHit :: Bool
     , dead :: Bool
     } deriving (Show, Eq) 
 
@@ -76,12 +86,14 @@ data GameState = GameState {
                 , enemyShootTimer :: Float 
                 , lives :: Lives
                 , explosions :: [Explosion]
+                , notifications :: [Notification]
+                , gameStatus :: GameStatus
                  }
 
 initialState :: GameState
 initialState = GameState {
                       infoToShow = DrawAll
-                    , player = MkPlayer (MkPoint 0 0)  10 False
+                    , player = MkPlayer (MkPoint 0 0) 10 False False
                     , enemies = []
                     , elapsedTime = 0
                     , bullets = []
@@ -90,4 +102,6 @@ initialState = GameState {
                     , enemyShootTimer = 0
                     , lives = Three
                     , explosions = []
+                    , notifications = []
+                    , gameStatus = Running
                   }
