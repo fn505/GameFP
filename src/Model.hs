@@ -27,7 +27,7 @@ data Explosion = MkExplosion
   , isSolid :: Bool
   }deriving(Show, Eq, Read)
 
-data Lives= Zero | One | Two | Three deriving(Show,Eq)
+data Lives = Zero | One | Two | Three deriving(Show,Eq)
 
 data Hitbox = MkHitbox
   {
@@ -66,6 +66,7 @@ data Enemy = MkEnemy
     , active :: Bool
     } deriving (Show, Eq) 
 
+-- Stores the pressed keys
 data InputHelper = MkInputHelper 
     { downKeys :: [Key] 
     , screenSize :: (Int,Int) 

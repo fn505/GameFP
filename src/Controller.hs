@@ -9,7 +9,7 @@ import Graphics.Gloss.Interface.IO.Game
 import System.Random
 
 
--- randomY waarde tussen -150 en 150
+
 generateRandomY :: RandomGen g => g -> (Float, g)
 generateRandomY gen = randomR (-150, 150) gen
 
@@ -28,16 +28,19 @@ spawnEnemyBullet (MkEnemy pos _ r _) = MkBullet (MkPoint ((xCor pos) - 2*r) (yCo
                                                                  
                                                                 
 
--- | Handle one iteration of the game
+-- | Handle one iteration of the game 
 step :: Float -> GameState -> IO GameState
 step secs gstate = 
+  -- update the GameState only if the status is Running
   let status = gameStatus gstate
   in case status of
     Running -> do
+      -- updating the components of the GameState that need updating
       let updatedPlayer = updatePlayerMovement (inputHelper gstate) (player gstate)
-      let collisionResult = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
       
-      gstate <- handleCollisions collisionResult gstate
+      let updatedCollisionType = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
+      
+      gstate <- handleCollisions updatedCollisionType gstate
       let updatedEnemies = moveEnemies (enemies gstate)
           updatedBullets = moveBullets(bullets gstate)
           updatedExplosions = updateExplosions secs (explosions gstate)
@@ -45,13 +48,13 @@ step secs gstate =
 
       if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
         then do -- spawn an enemy every 1.5 secs + update gamestate
-        gen <- newStdGen -- maak een random generator aan
-        let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
-        let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
-        let newBullets = [spawnEnemyBullet e | e <- updatedEnemies, shootingCondition e  (player gstate)] ++ updatedBullets
+        gen <- newStdGen 
+        let (randomY, _) = generateRandomY gen 
+        let spawnedEnemy = spawnEnemy randomY -- create an enemy aan with a random y-coordinate
+        let newBullets = [spawnEnemyBullet e | e <- updatedEnemies, shootingCondition e  (player gstate)] ++ updatedBullets -- check if enemy bullets satisfy the shootCondition and add bullets to the GameState
         return $ gstate { enemies = spawnedEnemy : updatedEnemies
                           , elapsedTime = 0
-                          , bullets = newBullets -- updatedBullets
+                          , bullets = newBullets
                           , enemyShootTimer = 0
                           , explosions = updatedExplosions
                           , notifications = updatedNotifications }
@@ -69,38 +72,42 @@ input :: (Monad m) => Event -> GameState -> m GameState
 input e gstate = 
   let ih = inputHelper gstate
   in return (inputKey ih e gstate)
--- in general -> als een key down is voeg het toe aan downkeys, daarna check for keyspace -> bullet toevoegen
--- verder gewone gstate teruggeven
 
+-- If a key is down, add it to downKeys
+-- Then check if it is the spacebar, the P-Key or Enter and perform the corresponding actions 
+-- If a key is no longer pressed, remove it from downKeys
 inputKey :: InputHelper -> Event -> GameState -> GameState
 inputKey ih@(MkInputHelper keyList _ _) (EventKey key Down _ _) gstate = 
     let updatedInputHelper = addKey ih key
          in case key of
+        -- add a new bullet to the list in the GameState
         SpecialKey KeySpace -> 
             let newBullet = spawnPlayerBullet (player gstate)
             in gstate { bullets = newBullet : bullets gstate}
-        --later uitbreiden met pause en resume 
+        -- change the gameStatus between Paused and Running
         Char 'p' -> let status = gameStatus gstate
                     in case status of 
                       Running -> gstate {gameStatus = Paused, infoToShow = DrawPauseScreen}
                       Paused  -> gstate {gameStatus = Running, infoToShow = DrawAll}
+        -- change the GameState to its initial state
         SpecialKey KeyEnter -> let status = gameStatus gstate
                                in if (status == GameOver)
                                   then initialState
                                   else gstate
+          -- otherwise return the GameState
         _ -> gstate { inputHelper = updatedInputHelper }
--- als een key losgelaten wordt -> verwijderen uit downkeys
 inputKey ih@(MkInputHelper keyList _ _) (EventKey key Up _ _) gstate = 
     let updatedInputHelper = removeKey ih key  
     in gstate { inputHelper = updatedInputHelper } 
 
 inputKey (MkInputHelper keyList _ _) _ gstate = gstate -- Otherwise keep the same
 
--- key toevoegen aan downkeys
+-- adding key to downKeys
 addKey :: InputHelper -> Key -> InputHelper
 addKey ih k = ih{downKeys = k : downKeys ih}
 
---key verwijderen uit downkeys
+
+-- removes key from downKeys
 removeKey :: InputHelper -> Key -> InputHelper
 removeKey ih k = ih { downKeys = filter (/= k) (downKeys ih) }
 
@@ -108,14 +115,13 @@ removeKey ih k = ih { downKeys = filter (/= k) (downKeys ih) }
 
 data MovingDirection = MovingDown | NoMoving | MovingUp
 
--- pattermatching voor welke key down is
+-- patternmatches to the movingDirection based on which key is down
 getMovement :: InputHelper -> MovingDirection
 getMovement ih | isKeyDown ih (Char 'w') = MovingUp
                | isKeyDown ih (Char 's') = MovingDown
                | otherwise = NoMoving
 
--- de moveplayer methode aanroepen bij de bijbehorende movements
-
+-- calling the movePlayer method based on the type of movingDirection
 updatePlayerMovement :: InputHelper -> Player -> Player
 updatePlayerMovement ih player =
   let playerMovement = getMovement ih
@@ -125,9 +131,9 @@ updatePlayerMovement ih player =
     MovingDown -> movePlayer (-step) player
     NoMoving -> player
 
+-- handles the movements of the objects
 movePlayer :: Float -> Player -> Player
 movePlayer delta player@(MkPlayer pos _ _ _) = player {playerPos = MkPoint (xCor pos) (yCor pos + delta)}
-
 
 moveEnemies :: [Enemy] -> [Enemy]
 moveEnemies = map moveEnemy
@@ -138,6 +144,7 @@ moveEnemy enemy@(MkEnemy pos s _ _) = enemy {enemyPos = MkPoint (xCor pos - s) (
 moveBullets :: [Bullet] -> [Bullet]
 moveBullets = map moveBullet
 
+-- handles the direction of the bullet based on its target
 moveBullet :: Bullet -> Bullet
 moveBullet bullet@(MkBullet pos _ _ s targetEnemies) = if(targetEnemies)
                                                         then bullet {bulletPos = MkPoint (xCor pos + s) (yCor pos)}
@@ -154,13 +161,14 @@ instance KeysPressed Key where
 instance KeysPressed Char where 
   isKeyDown ih k = isKeyDown ih ((Char) k)
 
-data Target = PlayerTarget | EnemyTarget deriving (Show, Eq) -- | NoTarget
+data Target = PlayerTarget | EnemyTarget deriving (Show, Eq) 
+
 data CollisionType = PlayerEnemyCollision 
                     | BulletEnemyCollision 
                     | BulletPlayerCollision 
                     | NoCollision deriving(Show, Eq)
 
-
+-- creates hitboxes for different objects and sets their respective targets
 class HasHitbox a where
   getHitbox :: a -> Hitbox
   getTarget :: a -> Target 
@@ -180,7 +188,7 @@ instance HasHitbox Bullet where
                         else PlayerTarget
                       
 
-
+-- checks if a hitbox collides with another hitbox
 hitboxCollision :: Hitbox -> Hitbox -> Bool
 hitboxCollision h1 h2 = 
   let xCollision = ((xCor (hitboxPos h2) - (xRadius h2)) <= (xCor (hitboxPos h1) + (xRadius h1))) && ((xCor (hitboxPos h2) + (xRadius h2)) >= (xCor (hitboxPos h1) - (xRadius h1)))
@@ -188,7 +196,7 @@ hitboxCollision h1 h2 =
   in
     xCollision && yCollision
   
-
+-- checks if there is a collision between two objects that have different targets
 objectsCollision :: (Eq a, Eq b, HasHitbox a,HasHitbox b) => a -> b -> Bool
 objectsCollision ob1 ob2 = 
   let ob1Hitbox = getHitbox ob1
@@ -200,6 +208,7 @@ objectsCollision ob1 ob2 =
         else False
   
 
+-- identify the type of collision by detecting object collisions
 identifyCollisions :: Player -> [Enemy] -> [Bullet] -> CollisionType
 identifyCollisions player enemies bullets =
   let playerEnemyCollision  = any (objectsCollision player) enemies
@@ -214,7 +223,9 @@ identifyCollisions player enemies bullets =
               else NoCollision
 
 
+-- handles the different types of collisions and returns an updates GameState
 handleCollisions :: CollisionType -> GameState -> IO GameState
+-- handle collisions between a player and an enenmy
 handleCollisions PlayerEnemyCollision gstate = do 
   putStrLn "player enemy collison"
 
@@ -225,7 +236,7 @@ handleCollisions PlayerEnemyCollision gstate = do
   return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen, highScore = updatedHighScore }
 
   
-
+-- handle collisions between a bullet and an enemy
 handleCollisions BulletEnemyCollision gstate = do
   putStrLn "bullet collision"
 
@@ -239,7 +250,7 @@ handleCollisions BulletEnemyCollision gstate = do
   
       accumalatedScore = length collidedEnemies
   return gstate {bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore, explosions = explosions gstate ++ newExplosions }
-
+-- handle collisions between a bullet and a player
 handleCollisions BulletPlayerCollision gstate = do
 
   putStrLn "player hit by bullet"
@@ -271,7 +282,7 @@ updateLives collided lives | collided = Zero
                             Zero -> Zero
 
  
-
+--decreases the radius of an explosion 
 updateExplosions :: Float -> [Explosion] -> [Explosion]
 updateExplosions secs explosions = 
   [explosion { explosionRadius = explosionRadius explosion - (decreaseRadius explosion)
@@ -281,22 +292,20 @@ updateExplosions secs explosions =
              , explosionTimer explosion > secs
              , explosionRadius explosion >= 0]
 
+
 updateNotifications :: Float -> [Notification] -> [Notification]
 updateNotifications secs notifications = [notification {notifyTimer = notifyTimer notification - secs } | notification <-notifications, notifyTimer notification > secs]
 
+-- reads all scores from a text file and compares the highest score with the current score of the player
 readScores :: FilePath -> Int -> IO Int
 readScores path currentScore = do
   input <- readFile path 
-  let content       = lines(input)  -- content :: [String] ["2", "3"]
+  let content       = lines(input)  -- content :: [String] 
   let intContent    = map stringToInt content -- [Int]
   let highestScore  = (maximum (intContent))  -- Int
   if(currentScore > highestScore)
   then return currentScore
   else return highestScore
-
-getHighScore :: Int -> Int
-getHighScore n = id n
-
 
 stringToInt :: String -> Int
 stringToInt s = read s
@@ -304,7 +313,7 @@ stringToInt s = read s
 intToString :: Int -> String
 intToString n = show n
 
-
+-- write a score to a text file
 writeScores :: Int -> FilePath -> IO ()
 writeScores playerScore path = 
   let stringScore = show(playerScore)

@@ -16,6 +16,8 @@ viewPure gstate = case infoToShow gstate of
   DrawGameOverScreen -> drawGameOverScreen (highScore gstate) (score gstate)
 
 
+drawAll :: (Player , [Enemy], [Bullet], Lives, Int, [Explosion], [Notification]) -> Picture
+drawAll (player, enemies, bullets, lives, g, explosions, notifications) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets,drawLives lives, drawScore g, drawExplosions explosions, drawNotifications notifications  ]
 
 drawPauseScreen :: Picture
 drawPauseScreen = 
@@ -29,14 +31,12 @@ drawGameOverScreen highscore score =
       newGameString = "Press ENTER to start a new game"
   in pictures [ translate (-175) 0 $ scaleText 0.5 $ color red (text gameOverString),  translate (-170) (-100) $ scaleText 0.15 $ color red (text newGameString ), drawHighScore highscore, drawScore score ]
 
+
 drawHighScore :: Int -> Picture
 drawHighScore highscore =   
   let highscoreDisplay = "High Score : " ++ show(highscore)
   in pictures [ translate (-190) 185 $ scaleText 0.1 $ color green (text highscoreDisplay)] 
 
-
-drawAll :: (Player , [Enemy], [Bullet], Lives, Int, [Explosion], [Notification]) -> Picture
-drawAll (player, enemies, bullets, lives, g, explosions, notifications) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets,drawLives lives, drawScore g, drawExplosions explosions, drawNotifications notifications  ]
 
 drawNotifications :: [Notification] -> Picture
 drawNotifications = pictures . map drawNotification
