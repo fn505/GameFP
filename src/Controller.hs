@@ -20,7 +20,8 @@ spawnPlayerBullet :: Player -> Bullet
 spawnPlayerBullet (MkPlayer pos r _ _)  = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 True
 
 shootingCondition :: Enemy -> Player -> Bool
-shootingCondition e@(MkEnemy posE _ _ _) p@(MkPlayer posP _ _ _) = let yDistance = abs ((yCor posE) - (yCor posP)) in yDistance < 75
+shootingCondition e@(MkEnemy posE _ _ _) p@(MkPlayer posP _ _ _) = let yDistance = abs ((yCor posE) - (yCor posP)) 
+                                                                   in yDistance < 75
 
 spawnEnemyBullet :: Enemy ->  Bullet
 spawnEnemyBullet (MkEnemy pos _ r _) = MkBullet (MkPoint ((xCor pos) - 2*r) (yCor pos)) 10 2.5 10 False
@@ -41,10 +42,6 @@ step secs gstate =
           updatedBullets = moveBullets(bullets gstate)
           updatedExplosions = updateExplosions secs (explosions gstate)
           updatedNotifications = updateNotifications secs (notifications gstate)
-         
-
-          
-
 
       if elapsedTime gstate + secs > nO_SECS_BETWEEN_CYCLES
         then do -- spawn an enemy every 1.5 secs + update gamestate
@@ -72,10 +69,10 @@ input :: (Monad m) => Event -> GameState -> m GameState
 input e gstate = 
   let ih = inputHelper gstate
   in return (inputKey ih e gstate)
-
-inputKey :: InputHelper -> Event -> GameState -> GameState
 -- in general -> als een key down is voeg het toe aan downkeys, daarna check for keyspace -> bullet toevoegen
 -- verder gewone gstate teruggeven
+
+inputKey :: InputHelper -> Event -> GameState -> GameState
 inputKey ih@(MkInputHelper keyList _ _) (EventKey key Down _ _) gstate = 
     let updatedInputHelper = addKey ih key
          in case key of
@@ -118,6 +115,7 @@ getMovement ih | isKeyDown ih (Char 'w') = MovingUp
                | otherwise = NoMoving
 
 -- de moveplayer methode aanroepen bij de bijbehorende movements
+
 updatePlayerMovement :: InputHelper -> Player -> Player
 updatePlayerMovement ih player =
   let playerMovement = getMovement ih

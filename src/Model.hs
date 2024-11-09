@@ -66,12 +66,12 @@ data Enemy = MkEnemy
     , active :: Bool
     } deriving (Show, Eq) 
 
-data InputHelper = MkInputHelper { 
-  downKeys :: [Key] , 
-  screenSize :: (Int,Int) , 
-  mousePosition :: (Float,Float)
-  }deriving (Show,Eq)
-  
+data InputHelper = MkInputHelper 
+    { downKeys :: [Key] 
+    , screenSize :: (Int,Int) 
+    , mousePosition :: (Float,Float)
+    } deriving (Show,Eq)
+
 nO_SECS_BETWEEN_CYCLES :: Float
 nO_SECS_BETWEEN_CYCLES = 1.5
 
