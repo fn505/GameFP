@@ -33,12 +33,6 @@ step secs gstate =
   in case status of
     Running -> do
       let updatedPlayer = updatePlayerMovement (inputHelper gstate) (player gstate)
-
-      -- Move the enemies
-
-      --moving bullets
-      --checks if any bullets in the gamestate hit any enemy
-      --let shotEnemy = any (\enemy -> any (`checkHitEnemy` enemy) updatedBullets) (enemies gstate)
       let collisionResult = identifyCollisions updatedPlayer (enemies gstate) (bullets gstate)
       
       gstate <- handleCollisions collisionResult gstate
@@ -221,9 +215,12 @@ identifyCollisions player enemies bullets =
 handleCollisions :: CollisionType -> GameState -> IO GameState
 handleCollisions PlayerEnemyCollision gstate = do 
   putStrLn "player enemy collison"
-  readScores "playerScores.txt"
+
+  updatedHighScore <- readScores "src/playerScores.txt" (score gstate)
+  writeScores (score gstate) "src/playerScores.txt"
+
   let updatedLives = updateLives True (lives gstate)
-  return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen }
+  return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen, highScore = updatedHighScore }
 
   
 
@@ -242,6 +239,7 @@ handleCollisions BulletEnemyCollision gstate = do
   return gstate {bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore, explosions = explosions gstate ++ newExplosions }
 
 handleCollisions BulletPlayerCollision gstate = do
+  
   putStrLn "player hit by bullet"
 
   let collidedBullets = filter (\bullet -> objectsCollision (player gstate) bullet) (bullets gstate)
@@ -250,9 +248,12 @@ handleCollisions BulletPlayerCollision gstate = do
   let newNotifications = [MkNotification (playerPos (player gstate)) 0.5]
 
   let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate) 
-
+  
   if (updatedLives == Zero)
-  then return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen }
+  then do 
+    updatedHighScore <- readScores "src/playerScores.txt" (score gstate)
+    writeScores (score gstate) "src/playerScores.txt"
+    return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen, highScore = updatedHighScore }
   else return gstate { bullets = updatedBullets, lives = updatedLives, notifications = notifications gstate ++ newNotifications}
 
 handleCollisions NoCollision gstate = do
@@ -281,12 +282,31 @@ updateExplosions secs explosions =
 updateNotifications :: Float -> [Notification] -> [Notification]
 updateNotifications secs notifications = [notification {notifyTimer = notifyTimer notification - secs } | notification <-notifications, notifyTimer notification > secs]
 
-readScores :: FilePath -> IO ()
-readScores path = do
-  input <- readFile path
-  putStrLn(input)
-  --let input = readFile path
-  --in  putStrLn (show input)
+readScores :: FilePath -> Int -> IO Int
+readScores path currentScore = do
+  input <- readFile path 
+  let content       = lines(input)  -- content :: [String] ["2", "3"]
+  let intContent    = map stringToInt content -- [Int]
+  let highestScore  = (maximum (intContent))  -- Int
+  if(currentScore > highestScore)
+  then return currentScore
+  else return highestScore
 
---putStrLn :: String -> IO()
---readFile :: IO String
+getHighScore :: Int -> Int
+getHighScore n = id n
+
+
+stringToInt :: String -> Int
+stringToInt s = read s
+
+intToString :: Int -> String
+intToString n = show n
+
+
+writeScores :: Int -> FilePath -> IO ()
+writeScores playerScore path = 
+  let stringScore = show(playerScore)
+  in appendFile path ("\n" ++ stringScore)
+  
+
+

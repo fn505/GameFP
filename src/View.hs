@@ -11,25 +11,29 @@ view = return . viewPure
 viewPure :: GameState -> Picture
 viewPure gstate = case infoToShow gstate of
   ShowNothing     -> blank
-  DrawPlayer      -> drawPlayer (player gstate)
-  DrawEnemies     -> drawEnemies (enemies gstate)
   DrawAll         -> drawAll (player gstate, enemies gstate, bullets gstate, lives gstate, score gstate, explosions gstate, notifications gstate)
-  DrawBullet      -> drawBullets(bullets gstate)
   DrawPauseScreen -> drawPauseScreen 
-  DrawGameOverScreen -> drawGameOverScreen
+  DrawGameOverScreen -> drawGameOverScreen (highScore gstate) (score gstate)
 
 
 
 drawPauseScreen :: Picture
 drawPauseScreen = 
   let pauseString = "Paused"
-  in pictures [ translate (-190) 0 $ scaleText 0.85 $ color green (text pauseString)]
+      resumeString = "Press P to resume the game"
+  in pictures [ translate (-120) 0 $ scaleText 0.5 $ color green (text pauseString), translate (-160) (-100) $ scaleText 0.15 $ color green (text resumeString )]
 
-drawGameOverScreen :: Picture
-drawGameOverScreen = 
+drawGameOverScreen :: Int -> Int -> Picture
+drawGameOverScreen highscore score = 
   let gameOverString = "Game Over"
       newGameString = "Press ENTER to start a new game"
-  in pictures [ translate (-175) 0 $ scaleText 0.5 $ color red (text gameOverString),  translate (-170) (-100) $ scaleText 0.15 $ color red (text newGameString ) ]
+  in pictures [ translate (-175) 0 $ scaleText 0.5 $ color red (text gameOverString),  translate (-170) (-100) $ scaleText 0.15 $ color red (text newGameString ), drawHighScore highscore, drawScore score ]
+
+drawHighScore :: Int -> Picture
+drawHighScore highscore =   
+  let highscoreDisplay = "High Score : " ++ show(highscore)
+  in pictures [ translate (-190) 185 $ scaleText 0.1 $ color green (text highscoreDisplay)] 
+
 
 drawAll :: (Player , [Enemy], [Bullet], Lives, Int, [Explosion], [Notification]) -> Picture
 drawAll (player, enemies, bullets, lives, g, explosions, notifications) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets,drawLives lives, drawScore g, drawExplosions explosions, drawNotifications notifications  ]
@@ -76,7 +80,7 @@ getLives lives = case lives of
                   One -> "1"
                   Two -> "2"
                   Three -> "3"
--- later iets met screensize ipv magic number , ook zodat het meebeweegst als scherm groter wordt
+
 drawLives :: Lives -> Picture
 drawLives n = 
   let lives = getLives n

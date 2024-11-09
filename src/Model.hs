@@ -4,10 +4,7 @@ module Model where
 import Graphics.Gloss.Interface.IO.Game (Key)
 
 data InfoToShow = ShowNothing
-                | DrawPlayer
-                | DrawEnemies
                 | DrawAll
-                | DrawBullet
                 | DrawPauseScreen
                 | DrawGameOverScreen
                 deriving (Show,Eq)
@@ -84,6 +81,7 @@ data GameState = GameState {
                 , elapsedTime :: Float
                 , bullets :: [Bullet] 
                 , score :: Int
+                , highScore :: Int
                 , inputHelper :: InputHelper
                 , enemyShootTimer :: Float 
                 , lives :: Lives
@@ -100,6 +98,7 @@ initialState = GameState {
                     , elapsedTime = 0
                     , bullets = []
                     , score = 0
+                    , highScore = 0
                     , inputHelper = MkInputHelper [] (400,400) (0,0)
                     , enemyShootTimer = 0
                     , lives = Three
