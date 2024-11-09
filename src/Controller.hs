@@ -21,6 +21,7 @@ spawnPlayerBullet (MkPlayer pos r _ _)  = MkBullet (MkPoint ((xCor pos) + 2*r) (
 
 shootingCondition :: Enemy -> Player -> Bool
 shootingCondition e@(MkEnemy posE _ _ _) p@(MkPlayer posP _ _ _) = let yDistance = abs ((yCor posE) - (yCor posP)) in yDistance < 75
+
 spawnEnemyBullet :: Enemy ->  Bullet
 spawnEnemyBullet (MkEnemy pos _ r _) = MkBullet (MkPoint ((xCor pos) - 2*r) (yCor pos)) 10 2.5 10 False
                                                                  
@@ -156,7 +157,10 @@ instance KeysPressed Char where
   isKeyDown ih k = isKeyDown ih ((Char) k)
 
 data Target = PlayerTarget | EnemyTarget deriving (Show, Eq) -- | NoTarget
-data CollisionType = PlayerEnemyCollision | BulletEnemyCollision | BulletPlayerCollision | NoCollision deriving(Show, Eq)
+data CollisionType = PlayerEnemyCollision 
+                    | BulletEnemyCollision 
+                    | BulletPlayerCollision 
+                    | NoCollision deriving(Show, Eq)
 
 
 class HasHitbox a where
@@ -239,7 +243,7 @@ handleCollisions BulletEnemyCollision gstate = do
   return gstate {bullets = updatedBullets, enemies = updatedEnemies, score = score gstate + accumalatedScore, explosions = explosions gstate ++ newExplosions }
 
 handleCollisions BulletPlayerCollision gstate = do
-  
+
   putStrLn "player hit by bullet"
 
   let collidedBullets = filter (\bullet -> objectsCollision (player gstate) bullet) (bullets gstate)

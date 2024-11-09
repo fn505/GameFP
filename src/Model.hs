@@ -17,6 +17,7 @@ data Notification = MkNotification
   , notifyTimer :: Float
 
   }deriving (Show,Eq)
+
 data Explosion = MkExplosion 
   {
     explosionPos :: Point
@@ -44,8 +45,7 @@ data Point = MkPoint
   
 
 data Bullet = MkBullet
-    {
-      bulletPos :: Point
+    { bulletPos :: Point
     , bulletXRadius :: Float
     , bulletYRadius :: Float
     , bulletSpeed :: Float
@@ -53,7 +53,7 @@ data Bullet = MkBullet
     } deriving (Show, Eq)
     
 data Player = MkPlayer
-    { playerPos :: Point -- beweegbaar  
+    { playerPos :: Point  
     , playerRadius :: Float
     , wasHit :: Bool
     , dead :: Bool
@@ -61,7 +61,7 @@ data Player = MkPlayer
 
 data Enemy = MkEnemy
     { enemyPos :: Point
-    , speed :: Float -- voor nu een vaste waarde
+    , speed :: Float 
     , enemyRadius :: Float
     , active :: Bool
     } deriving (Show, Eq) 
@@ -71,6 +71,7 @@ data InputHelper = MkInputHelper {
   screenSize :: (Int,Int) , 
   mousePosition :: (Float,Float)
   }deriving (Show,Eq)
+  
 nO_SECS_BETWEEN_CYCLES :: Float
 nO_SECS_BETWEEN_CYCLES = 1.5
 
