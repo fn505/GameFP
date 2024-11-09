@@ -221,10 +221,10 @@ identifyCollisions player enemies bullets =
 handleCollisions :: CollisionType -> GameState -> IO GameState
 handleCollisions PlayerEnemyCollision gstate = do 
   putStrLn "player enemy collison"
+  readScores "playerScores.txt"
   let updatedLives = updateLives True (lives gstate)
-  if (updatedLives == Zero)
-  then return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen }
-  else return gstate 
+  return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen }
+
   
 
 handleCollisions BulletEnemyCollision gstate = do
@@ -281,7 +281,12 @@ updateExplosions secs explosions =
 updateNotifications :: Float -> [Notification] -> [Notification]
 updateNotifications secs notifications = [notification {notifyTimer = notifyTimer notification - secs } | notification <-notifications, notifyTimer notification > secs]
 
--- updatePlayerDrawing :: Float -> Player -> Player
--- updatePlayerDrawing secs player = 
---   player {wasHit = not (wasHit player)
---         , hitTimer = hitTimer player - secs}
+readScores :: FilePath -> IO ()
+readScores path = do
+  input <- readFile path
+  putStrLn(input)
+  --let input = readFile path
+  --in  putStrLn (show input)
+
+--putStrLn :: String -> IO()
+--readFile :: IO String
