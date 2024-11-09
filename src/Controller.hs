@@ -19,8 +19,12 @@ spawnEnemy enemyYpos= MkEnemy (MkPoint 180 enemyYpos) 5 10 True
 spawnPlayerBullet :: Player -> Bullet
 spawnPlayerBullet (MkPlayer pos r _ _)  = MkBullet (MkPoint ((xCor pos) + 2*r) (yCor pos)) 10 2.5 5 True
 
-spawnEnemyBullet :: Enemy -> Bullet
+shootingCondition :: Enemy -> Player -> Bool
+shootingCondition e@(MkEnemy posE _ _ _) p@(MkPlayer posP _ _ _) = let yDistance = abs ((yCor posE) - (yCor posP)) in yDistance < 75
+spawnEnemyBullet :: Enemy ->  Bullet
 spawnEnemyBullet (MkEnemy pos _ r _) = MkBullet (MkPoint ((xCor pos) - 2*r) (yCor pos)) 10 2.5 10 False
+                                                                 
+                                                                
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
@@ -52,7 +56,7 @@ step secs gstate =
         gen <- newStdGen -- maak een random generator aan
         let (randomY, _) = generateRandomY gen -- generate een (nieuwe) randomY waarde,
         let spawnedEnemy = spawnEnemy randomY -- maak enemy aan met de randomY waarde
-        let newBullets = map spawnEnemyBullet updatedEnemies ++ updatedBullets
+        let newBullets = [spawnEnemyBullet e | e <- updatedEnemies, shootingCondition e  (player gstate)] ++ updatedBullets
         return $ gstate { enemies = spawnedEnemy : updatedEnemies
                           , elapsedTime = 0
                           , bullets = newBullets -- updatedBullets
@@ -88,6 +92,10 @@ inputKey ih@(MkInputHelper keyList _ _) (EventKey key Down _ _) gstate =
                     in case status of 
                       Running -> gstate {gameStatus = Paused, infoToShow = DrawPauseScreen}
                       Paused  -> gstate {gameStatus = Running, infoToShow = DrawAll}
+        SpecialKey KeyEnter -> let status = gameStatus gstate
+                               in if (status == GameOver)
+                                  then initialState
+                                  else gstate
         _ -> gstate { inputHelper = updatedInputHelper }
 -- als een key losgelaten wordt -> verwijderen uit downkeys
 inputKey ih@(MkInputHelper keyList _ _) (EventKey key Up _ _) gstate = 
@@ -213,7 +221,11 @@ identifyCollisions player enemies bullets =
 handleCollisions :: CollisionType -> GameState -> IO GameState
 handleCollisions PlayerEnemyCollision gstate = do 
   putStrLn "player enemy collison"
-  return gstate 
+  let updatedLives = updateLives True (lives gstate)
+  if (updatedLives == Zero)
+  then return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen }
+  else return gstate 
+  
 
 handleCollisions BulletEnemyCollision gstate = do
   putStrLn "bullet collision"
@@ -234,30 +246,28 @@ handleCollisions BulletPlayerCollision gstate = do
 
   let collidedBullets = filter (\bullet -> objectsCollision (player gstate) bullet) (bullets gstate)
   
-  let updatedLives = updateLives (lives gstate)  
- 
+  let updatedLives = updateLives False (lives gstate) 
   let newNotifications = [MkNotification (playerPos (player gstate)) 0.5]
 
-  let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate)
+  let updatedBullets = filter (`notElem` collidedBullets) (bullets gstate) 
 
-  return gstate { bullets = updatedBullets, lives = updatedLives, notifications = notifications gstate ++ newNotifications}
+  if (updatedLives == Zero)
+  then return gstate { gameStatus = GameOver, infoToShow = DrawGameOverScreen }
+  else return gstate { bullets = updatedBullets, lives = updatedLives, notifications = notifications gstate ++ newNotifications}
 
 handleCollisions NoCollision gstate = do
   return gstate 
 
---makeWasHitTrue :: Player -> Player
---makeWasHitTrue player = player {wasHit = True}
 
---makeWasHitFalse :: Player -> Player
---makeWasHitFalse player = player {wasHit = False}
+updateLives :: Bool -> Lives -> Lives
+updateLives collided lives | collided = Zero 
+                           | otherwise = case lives of 
+                            Three -> Two
+                            Two -> One
+                            One -> Zero
+                            Zero -> Zero
 
-updateLives :: Lives -> Lives
-updateLives lives = case lives of 
-  Three -> Two
-  Two -> One
-  One -> Zero
-  Zero -> Zero
-
+ 
 
 updateExplosions :: Float -> [Explosion] -> [Explosion]
 updateExplosions secs explosions = 

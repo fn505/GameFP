@@ -9,15 +9,17 @@ data InfoToShow = ShowNothing
                 | DrawAll
                 | DrawBullet
                 | DrawPauseScreen
+                | DrawGameOverScreen
+                deriving (Show,Eq)
 
-data GameStatus = Running | Paused | GameOver
+data GameStatus = Running | Paused | GameOver deriving (Show,Eq)
 
 data Notification = MkNotification
   {
     notifyPos :: Point
   , notifyTimer :: Float
 
-  }
+  }deriving (Show,Eq)
 data Explosion = MkExplosion 
   {
     explosionPos :: Point
@@ -27,7 +29,7 @@ data Explosion = MkExplosion
   , isSolid :: Bool
   }deriving(Show, Eq, Read)
 
-data Lives= Zero | One | Two | Three
+data Lives= Zero | One | Two | Three deriving(Show,Eq)
 
 data Hitbox = MkHitbox
   {
@@ -71,7 +73,7 @@ data InputHelper = MkInputHelper {
   downKeys :: [Key] , 
   screenSize :: (Int,Int) , 
   mousePosition :: (Float,Float)
-  }
+  }deriving (Show,Eq)
 nO_SECS_BETWEEN_CYCLES :: Float
 nO_SECS_BETWEEN_CYCLES = 1.5
 
@@ -88,7 +90,7 @@ data GameState = GameState {
                 , explosions :: [Explosion]
                 , notifications :: [Notification]
                 , gameStatus :: GameStatus
-                 }
+                 } deriving (Show,Eq)
 
 initialState :: GameState
 initialState = GameState {

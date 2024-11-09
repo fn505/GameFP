@@ -16,16 +16,20 @@ viewPure gstate = case infoToShow gstate of
   DrawAll         -> drawAll (player gstate, enemies gstate, bullets gstate, lives gstate, score gstate, explosions gstate, notifications gstate)
   DrawBullet      -> drawBullets(bullets gstate)
   DrawPauseScreen -> drawPauseScreen 
-  -- ShowANumber n -> color green (text (show n))
-  -- ShowAChar   c -> color green (text [c])
-  -- ShowCircle -> let (x, y) = circlePos gstate
-  --               in translate x y $ color blue (circle 50)
+  DrawGameOverScreen -> drawGameOverScreen
+
 
 
 drawPauseScreen :: Picture
 drawPauseScreen = 
   let pauseString = "Paused"
   in pictures [ translate (-190) 0 $ scaleText 0.85 $ color green (text pauseString)]
+
+drawGameOverScreen :: Picture
+drawGameOverScreen = 
+  let gameOverString = "Game Over"
+      newGameString = "Press ENTER to start a new game"
+  in pictures [ translate (-175) 0 $ scaleText 0.5 $ color red (text gameOverString),  translate (-170) (-100) $ scaleText 0.15 $ color red (text newGameString ) ]
 
 drawAll :: (Player , [Enemy], [Bullet], Lives, Int, [Explosion], [Notification]) -> Picture
 drawAll (player, enemies, bullets, lives, g, explosions, notifications) = pictures[drawPlayer player, drawEnemies enemies, drawBullets bullets,drawLives lives, drawScore g, drawExplosions explosions, drawNotifications notifications  ]
